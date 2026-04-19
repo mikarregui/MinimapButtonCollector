@@ -6,6 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-04-19
+
+### Added
+- Press **ESC** to close the overlay — the standard WoW way. The overlay registers a tiny proxy frame in `UISpecialFrames`; WoW hides it when Escape is pressed and our `OnHide` handler runs the normal animated close.
+- Live capture of LibDBIcon buttons registered after the initial post-login scans. We now post-hook `LibDBIcon-1.0:Register` via `hooksecurefunc`, so any addon that creates its minimap button late (e.g. only when you open a raid frame or enter a group) is adopted the moment it registers — `/mbc rescan` is rarely needed anymore.
+
+### Changed
+- README now shows a CurseForge downloads badge alongside the existing GitHub badge and calls out the three distribution channels (GitHub Releases, CurseForge, Wago) right under the badges so the availability is obvious at a glance.
+- `.github/FUNDING.yml` added with a Ko-fi link, so the GitHub repo sidebar now has a "Sponsor" button. Matching compact `## Support` section at the end of the README. Strictly opt-in for users — nothing in-game ever prompts for donations.
+
 ## [1.0.2] - 2026-04-19
 
 ### Added
@@ -40,7 +50,8 @@ Initial public release.
 - Slash commands: `/mbc` (toggle), `/mbc rescan` (re-detect), `/mbc list` (summary grouped by source, up to 10 names per source), `/mbc list full` (full dump).
 - Automated GitHub Releases via BigWigs Packager on tag push, resolving LibStub / CallbackHandler-1.0 / LibDataBroker-1.1 / LibDBIcon-1.0 externals from `.pkgmeta`.
 
-[Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/mikarregui/MinimapButtonCollector/releases/tag/v1.0.0

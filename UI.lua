@@ -71,6 +71,19 @@ overlayHost:SetAllPoints(Minimap)
 overlayHost:SetFrameStrata("HIGH")
 overlayHost:Hide()
 
+-- ESC-to-close, the standard WoW way. WoW hides the topmost shown frame
+-- listed in UISpecialFrames when the user presses Escape. We use a tiny
+-- proxy instead of overlayHost itself so we can run an animated close via
+-- our OnHide handler and keep overlayHost fully under our control.
+local escHandler = CreateFrame("Frame", "MBCEscHandler", UIParent)
+escHandler:Hide()
+escHandler:SetScript("OnHide", function()
+    if ns.state.isOpen then
+        ns:CloseOverlay()
+    end
+end)
+tinsert(UISpecialFrames, "MBCEscHandler")
+
 local function animateFade(entries, duration, onDone)
     local elapsed = 0
     animFrame:SetScript("OnUpdate", function(self, dt)
@@ -117,6 +130,7 @@ local function restoreButtons()
     end
     Minimap:SetAlpha(1)
     overlayHost:Hide()
+    escHandler:Hide()
 end
 
 function ns:OpenOverlay()
@@ -157,6 +171,7 @@ function ns:OpenOverlay()
     end
 
     overlayHost:Show()
+    escHandler:Show()
     animateFade(fadeEntries, FADE_DURATION)
 end
 
