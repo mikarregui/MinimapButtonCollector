@@ -17,5 +17,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 - `/mbc list` now summarizes collected buttons grouped by source (LibDBIcon / minimap-child) and shows up to 10 names per source. Full dump available via `/mbc list full`.
+- Overlay hex layout now uses 8 px gap between buttons both horizontally and vertically, instead of edge-to-edge packing, so icons have room to breathe and are easier to read at a glance.
 
 [Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/HEAD...HEAD

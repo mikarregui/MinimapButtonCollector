@@ -3,8 +3,9 @@ local addonName, ns = ...
 local FADE_DURATION         = 0.2
 local MINIMAP_DIMMED_ALPHA  = 0.4
 local BUTTON_SIZE           = 24
-local HEX_DX                = BUTTON_SIZE
-local HEX_DY                = BUTTON_SIZE * 0.866
+local BUTTON_GAP            = 8
+local HEX_DX                = BUTTON_SIZE + BUTTON_GAP
+local HEX_DY                = BUTTON_SIZE + BUTTON_GAP
 
 local function isUsable(frame)
     if not frame then return false end
