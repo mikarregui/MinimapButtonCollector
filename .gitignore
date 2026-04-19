@@ -1,5 +1,5 @@
 # BigWigs Packager resolves and populates Libs/ at build time — never commit
-MinimapButtonCollector/Libs/
+Libs/
 
 # Packager build output
 .release/
