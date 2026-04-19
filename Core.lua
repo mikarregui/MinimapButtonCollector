@@ -102,10 +102,17 @@ function ns:AdoptButton(name, button, source)
         button = button,
         originalParent = button:GetParent(),
         originalAlpha = button:GetAlpha() or 1,
+        originalShow = button.Show,
         point = { button:GetPoint() },
         source = source,
         hooked = false,
     }
+
+    -- Prevent the owning addon from re-showing the button outside our overlay.
+    -- Hide() stays on the original method so we and the addon can still hide it.
+    button.Show = function() end
+    button:Hide()
+
     return true
 end
 

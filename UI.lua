@@ -65,6 +65,11 @@ end
 
 local animFrame = CreateFrame("Frame")
 
+local overlayHost = CreateFrame("Frame", "MBCOverlayHost", UIParent)
+overlayHost:SetAllPoints(Minimap)
+overlayHost:SetFrameStrata("HIGH")
+overlayHost:Hide()
+
 local function animateFade(entries, duration, onDone)
     local elapsed = 0
     animFrame:SetScript("OnUpdate", function(self, dt)
@@ -118,9 +123,11 @@ local function restoreButtons()
                 pcall(btn.SetPoint, btn, p[1], p[2], p[3], p[4], p[5])
             end
             btn:SetAlpha(data.originalAlpha or 1)
+            btn:Hide()
         end
     end
     Minimap:SetAlpha(1)
+    overlayHost:Hide()
     if outsideCatcher then outsideCatcher:Hide() end
 end
 
@@ -158,17 +165,16 @@ function ns:OpenOverlay()
         local pos = positions[i]
 
         btn:ClearAllPoints()
-        btn:SetParent(Minimap)
-        btn:SetFrameStrata("HIGH")
-        btn:SetFrameLevel(Minimap:GetFrameLevel() + 10)
-        btn:SetPoint("CENTER", Minimap, "CENTER", pos.x, pos.y)
+        btn:SetParent(overlayHost)
+        btn:SetPoint("CENTER", overlayHost, "CENTER", pos.x, pos.y)
         btn:SetAlpha(0)
-        btn:Show()
+        entry.data.originalShow(btn)
 
         hookAutoClose(btn, entry.data)
         fadeEntries[#fadeEntries + 1] = { obj = btn, from = 0, to = 1 }
     end
 
+    overlayHost:Show()
     outsideCatcher:Show()
     animateFade(fadeEntries, FADE_DURATION)
 end
