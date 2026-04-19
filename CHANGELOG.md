@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-04-19
+
+### Added
+- Published on CurseForge at https://www.curseforge.com/wow/addons/minimap-button-collector. Releases tagged from this version onward upload to CurseForge automatically via the packager (uses the `CF_API_KEY` repository secret and the `X-Curse-Project-ID` header in the `.toc`).
+- Project logo committed at `assets/logo.png` and displayed at the top of the README.
+
+### Fixed
+- README no longer describes pre-rc5 behavior: the Features list no longer claims the overlay refuses to open in combat (it can), and the Usage section no longer mentions closing on a click outside the minimap (the overlay has been non-modal since v1.0.0).
+
 ## [1.0.0] - 2026-04-19
 
 Initial public release.
@@ -22,5 +31,6 @@ Initial public release.
 - Slash commands: `/mbc` (toggle), `/mbc rescan` (re-detect), `/mbc list` (summary grouped by source, up to 10 names per source), `/mbc list full` (full dump).
 - Automated GitHub Releases via BigWigs Packager on tag push, resolving LibStub / CallbackHandler-1.0 / LibDataBroker-1.1 / LibDBIcon-1.0 externals from `.pkgmeta`.
 
-[Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/mikarregui/MinimapButtonCollector/releases/tag/v1.0.0
