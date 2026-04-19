@@ -1,0 +1,25 @@
+package-as: MinimapButtonCollector
+
+enable-nolib-creation: no
+license-output: LICENSE.txt
+changelog: CHANGELOG.md
+
+ignore:
+    - .github
+    - .gitignore
+    - .editorconfig
+    - .pkgmeta
+    - README.md
+    - CONTRIBUTING.md
+    - CHANGELOG.md
+    - LICENSE
+
+externals:
+    MinimapButtonCollector/Libs/LibStub:
+        url: https://repos.wowace.com/wow/ace3/trunk/LibStub
+    MinimapButtonCollector/Libs/CallbackHandler-1.0:
+        url: https://repos.wowace.com/wow/callbackhandler/trunk/CallbackHandler-1.0
+    MinimapButtonCollector/Libs/LibDataBroker-1.1:
+        url: https://github.com/tekkub/libdatabroker-1-1
+    MinimapButtonCollector/Libs/LibDBIcon-1.0:
+        url: https://repos.wowace.com/wow/libdbicon-1-0/trunk/LibDBIcon-1.0
