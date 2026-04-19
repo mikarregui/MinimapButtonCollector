@@ -1,0 +1,11 @@
+## Interface: 20505
+## Title: Minimap Button Collector
+## Notes: Groups your minimap addon buttons behind a single trigger.
+## Author: mikarregui
+## Version: @project-version@
+## SavedVariables: MinimapButtonCollectorDB
+## X-License: MIT
+
+embeds.xml
+Core.lua
+UI.lua
