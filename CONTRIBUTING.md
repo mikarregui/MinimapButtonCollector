@@ -51,12 +51,12 @@ cd MinimapButtonCollector
 # PowerShell as Administrator:
 New-Item -ItemType SymbolicLink `
   -Path "C:\BattleNet\World of Warcraft\_anniversary_\Interface\AddOns\MinimapButtonCollector" `
-  -Target "$PWD\MinimapButtonCollector"
+  -Target "$PWD"
 ```
 
 After the symlink, edits in the repo are picked up by WoW after a `/reload`.
 
-> **Note on libraries.** `MinimapButtonCollector/Libs/` is resolved by the BigWigs Packager at release time and is not committed. For local testing you need the libraries present in that folder. Easiest path: download the latest release ZIP, copy its `Libs/` into your symlinked folder, then edit source files freely.
+> **Note on libraries.** `Libs/` is resolved by the BigWigs Packager at release time and is not committed. For local testing you need the libraries present in that folder. Easiest path: download the latest release ZIP, copy its `Libs/` into the repo root, then edit source files freely.
 
 ### Iterating in-game
 
@@ -76,7 +76,7 @@ Install [BugGrabber](https://www.curseforge.com/wow/addons/bug-grabber) + [BugSa
 ### Syntax check before pushing
 
 ```bash
-luac -p MinimapButtonCollector/Core.lua MinimapButtonCollector/UI.lua
+luac -p Core.lua UI.lua
 ```
 
 Make sure you're using a Lua **5.1** `luac` (the version WoW runs).
