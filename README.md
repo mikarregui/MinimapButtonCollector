@@ -8,11 +8,13 @@
 
 [![Release](https://img.shields.io/github/v/release/mikarregui/MinimapButtonCollector?sort=semver&display_name=tag)](https://github.com/mikarregui/MinimapButtonCollector/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Downloads](https://img.shields.io/github/downloads/mikarregui/MinimapButtonCollector/total.svg)](https://github.com/mikarregui/MinimapButtonCollector/releases)
+[![GitHub downloads](https://img.shields.io/github/downloads/mikarregui/MinimapButtonCollector/total.svg?label=GitHub&color=24292f)](https://github.com/mikarregui/MinimapButtonCollector/releases)
+[![CurseForge downloads](https://img.shields.io/curseforge/dt/1518595?label=CurseForge&color=f16436)](https://www.curseforge.com/wow/addons/minimap-button-collector)
 [![Issues](https://img.shields.io/github/issues/mikarregui/MinimapButtonCollector.svg)](https://github.com/mikarregui/MinimapButtonCollector/issues)
 [![Stars](https://img.shields.io/github/stars/mikarregui/MinimapButtonCollector.svg?style=social)](https://github.com/mikarregui/MinimapButtonCollector/stargazers)
 
 > Target client: **World of Warcraft — The Burning Crusade Classic Anniversary Edition** (2.5.5, Interface `20505`).
+> Available on **[GitHub Releases](https://github.com/mikarregui/MinimapButtonCollector/releases)**, **[CurseForge](https://www.curseforge.com/wow/addons/minimap-button-collector)**, and **[Wago](https://addons.wago.io/addons/minimapbuttoncollector)**.
 
 <!-- TODO: add demo GIF here after first release -->
 
@@ -22,7 +24,7 @@ Install a handful of addons and your minimap edge turns into a ring of overlappi
 
 ## Features
 
-- **Hybrid detection** — catches both modern (LibDBIcon-based) and legacy addon buttons
+- **Hybrid detection** — catches modern LibDBIcon buttons (including those registered after login, captured live) and legacy minimap buttons
 - **On-minimap overlay** — buttons appear on top of the minimap, not in a floating panel
 - **Smooth fade transition** — minimap dims, buttons appear, feels native
 - **Auto-close** — click any addon button and the overlay closes on its own
@@ -49,7 +51,7 @@ Available on [CurseForge](https://www.curseforge.com/wow/addons/minimap-button-c
 
 - **Click** the trigger button on the minimap → overlay opens.
 - **Click any button** in the overlay → addon action runs, overlay closes.
-- **Re-click the trigger** → overlay closes.
+- **Re-click the trigger** or press **ESC** → overlay closes.
 - **Drag the trigger** around the minimap edge to reposition it. Position persists.
 
 ### Slash commands
@@ -103,6 +105,12 @@ Planned for future versions:
 - [LibDataBroker-1.1](https://github.com/tekkub/libdatabroker-1-1)
 - [LibDBIcon-1.0](https://www.wowace.com/projects/libdbicon-1-0)
 - [BigWigs Packager](https://github.com/BigWigsMods/packager) for release automation
+
+## Support
+
+If **Minimap Button Collector** saves you some minimap real estate and you feel like saying thanks, you can tip me a coffee on Ko-fi. Completely optional — the addon stays free and fully functional regardless.
+
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-tip%20me-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/mikarregui)
 
 ## License
 

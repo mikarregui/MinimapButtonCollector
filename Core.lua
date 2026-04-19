@@ -147,6 +147,22 @@ function ns:ScanButtons()
     return added
 end
 
+-- Live capture: when any addon registers a new LibDBIcon button after our
+-- post-login scan windows, adopt it immediately so /mbc rescan is usually
+-- unnecessary. hooksecurefunc runs our callback AFTER the original Register
+-- completes, so lib.objects[name] is already populated.
+local libDBIcon = LibStub and LibStub("LibDBIcon-1.0", true)
+if libDBIcon and type(libDBIcon.Register) == "function" then
+    hooksecurefunc(libDBIcon, "Register", function(_, name)
+        if name == "MinimapButtonCollector" then return end
+        if ns.collectedButtons[name] then return end
+        local button = libDBIcon.objects and libDBIcon.objects[name]
+        if button then
+            ns:AdoptButton(name, button, "libdbicon-live")
+        end
+    end)
+end
+
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
