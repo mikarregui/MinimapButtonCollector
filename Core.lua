@@ -29,18 +29,37 @@ local BLIZZARD_MINIMAP_BLACKLIST = {
 
 local CONFLICTING_PARENTS = { "MoveAny", "SexyMap", "Chinchilla" }
 
+local MIN_BUTTON_SIZE = 18
+local MAX_BUTTON_SIZE = 48
+
 local function isUsable(frame)
     if not frame then return false end
     if frame.IsForbidden and frame:IsForbidden() then return false end
     return true
 end
 
+local function isDynamicIndicatorName(name)
+    return name:match("Frame%d+$") ~= nil
+        or name:match("Icon%d+$") ~= nil
+        or name:match("Pin%d+$") ~= nil
+        or name:match("Marker%d+$") ~= nil
+end
+
 local function looksLikeAddonButton(frame)
-    if frame == UIParent or frame == Minimap then return false end
+    if frame == UIParent or frame == Minimap or frame == MinimapBackdrop then
+        return false
+    end
 
     local objType = frame:GetObjectType()
     local clickable = objType == "Button" or frame:HasScript("OnClick")
     if not clickable then return false end
+
+    local w = frame:GetWidth() or 0
+    local h = frame:GetHeight() or 0
+    if w < MIN_BUTTON_SIZE or w > MAX_BUTTON_SIZE
+       or h < MIN_BUTTON_SIZE or h > MAX_BUTTON_SIZE then
+        return false
+    end
 
     for _, region in ipairs({ frame:GetRegions() }) do
         if region:GetObjectType() == "Texture" then
@@ -109,6 +128,7 @@ function ns:ScanButtons()
         if name
            and not BLIZZARD_MINIMAP_BLACKLIST[name]
            and not name:find("^LibDBIcon10_")
+           and not isDynamicIndicatorName(name)
            and not self.collectedButtons[name]
            and looksLikeAddonButton(child) then
             if self:AdoptButton(name, child, "minimap-child") then
@@ -148,12 +168,30 @@ SlashCmdList["MBC"] = function(msg)
         local added = ns:ScanButtons()
         print("|cff55ff55MBC:|r rescan added " .. added .. " button(s), " .. ns:CountButtons() .. " total.")
     elseif msg == "list" then
+        local bySource, total = {}, 0
+        for name, data in pairs(ns.collectedButtons) do
+            bySource[data.source] = bySource[data.source] or {}
+            table.insert(bySource[data.source], name)
+            total = total + 1
+        end
+        for source, names in pairs(bySource) do
+            table.sort(names)
+            print(("|cff55ff55MBC:|r %s: %d button(s)"):format(source, #names))
+            for i = 1, math.min(10, #names) do
+                print("  " .. names[i])
+            end
+            if #names > 10 then
+                print(("  ... and %d more (use /mbc list full)"):format(#names - 10))
+            end
+        end
+        print(("|cff55ff55MBC:|r %d button(s) total."):format(total))
+    elseif msg == "list full" then
         local total = 0
         for name, data in pairs(ns.collectedButtons) do
             print("  " .. name .. "  (" .. data.source .. ")")
             total = total + 1
         end
-        print("|cff55ff55MBC:|r " .. total .. " button(s) collected.")
+        print(("|cff55ff55MBC:|r %d button(s) total."):format(total))
     elseif msg == "" then
         if ns.ToggleOverlay then ns:ToggleOverlay() end
     else
