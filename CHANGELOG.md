@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-04-19
+
+### Added
+- Published on Wago at https://addons.wago.io/addons/minimapbuttoncollector via Wago's GitHub Addon integration — no `X-Wago-ID` header or upload token needed; Wago pulls releases from GitHub automatically.
+
+### Fixed
+- README logo image now uses an absolute `raw.githubusercontent.com` URL so it renders correctly on external sites that embed the README (Wago project page, mirrors, etc.). The previous relative path worked on github.com but broke everywhere else.
+- `assets/` folder is no longer packaged inside the addon ZIP. The logo lives there for CurseForge / Wago / README header use; it doesn't need to ship to the user's AddOns folder. The v1.0.1 ZIP was ~7 KB heavier than necessary for this reason.
+
 ## [1.0.1] - 2026-04-19
 
 ### Added
@@ -31,6 +40,7 @@ Initial public release.
 - Slash commands: `/mbc` (toggle), `/mbc rescan` (re-detect), `/mbc list` (summary grouped by source, up to 10 names per source), `/mbc list full` (full dump).
 - Automated GitHub Releases via BigWigs Packager on tag push, resolving LibStub / CallbackHandler-1.0 / LibDataBroker-1.1 / LibDBIcon-1.0 externals from `.pkgmeta`.
 
-[Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/mikarregui/MinimapButtonCollector/releases/tag/v1.0.0

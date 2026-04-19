@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Minimap Button Collector logo" width="160">
+  <img src="https://raw.githubusercontent.com/mikarregui/MinimapButtonCollector/main/assets/logo.png" alt="Minimap Button Collector logo" width="160">
 </p>
 
 # MinimapButtonCollector
@@ -34,7 +34,7 @@ Install a handful of addons and your minimap edge turns into a ring of overlappi
 
 ### Via addon manager (recommended)
 
-Available on [CurseForge](https://www.curseforge.com/wow/addons/minimap-button-collector) — install via the CurseForge desktop app or [WowUp](https://wowup.io). Wago support coming in a future release.
+Available on [CurseForge](https://www.curseforge.com/wow/addons/minimap-button-collector) and [Wago](https://addons.wago.io/addons/minimapbuttoncollector). Install via the CurseForge app, the Wago app, or [WowUp](https://wowup.io) (multi-source).
 
 ### Manual
 
@@ -94,7 +94,6 @@ Planned for future versions:
 - Editable blacklist (exclude specific addon buttons)
 - Drag & drop reorder inside the overlay
 - Search / filter by name
-- Publish to Wago
 
 ## Tech stack
 
