@@ -89,18 +89,6 @@ local function animateFade(entries, duration, onDone)
     end)
 end
 
-local outsideCatcher
-
-local function buildOutsideCatcher()
-    if outsideCatcher then return end
-    outsideCatcher = CreateFrame("Frame", nil, UIParent)
-    outsideCatcher:SetAllPoints(UIParent)
-    outsideCatcher:SetFrameStrata("MEDIUM")
-    outsideCatcher:EnableMouse(true)
-    outsideCatcher:SetScript("OnMouseDown", function() ns:CloseOverlay() end)
-    outsideCatcher:Hide()
-end
-
 local function hookAutoClose(button, data)
     if data.hooked then return end
     button:HookScript("OnClick", function()
@@ -129,17 +117,10 @@ local function restoreButtons()
     end
     Minimap:SetAlpha(1)
     overlayHost:Hide()
-    if outsideCatcher then outsideCatcher:Hide() end
 end
 
 function ns:OpenOverlay()
     if self.state.isOpen then return end
-    if InCombatLockdown() then
-        print("|cffff5555MBC:|r can't open the overlay in combat.")
-        return
-    end
-
-    buildOutsideCatcher()
 
     local ordered = {}
     for name, data in pairs(self.collectedButtons) do
@@ -176,7 +157,6 @@ function ns:OpenOverlay()
     end
 
     overlayHost:Show()
-    outsideCatcher:Show()
     animateFade(fadeEntries, FADE_DURATION)
 end
 
@@ -184,7 +164,7 @@ function ns:CloseOverlay(forced)
     if not self.state.isOpen then return end
     self.state.isOpen = false
 
-    if forced or InCombatLockdown() then
+    if forced then
         animFrame:SetScript("OnUpdate", nil)
         restoreButtons()
         return

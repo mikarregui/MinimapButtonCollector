@@ -150,7 +150,6 @@ end
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 eventFrame:SetScript("OnEvent", function(_, event)
     if event == "PLAYER_LOGIN" then
         MinimapButtonCollectorDB = MinimapButtonCollectorDB or {}
@@ -160,10 +159,6 @@ eventFrame:SetScript("OnEvent", function(_, event)
         C_Timer.After(2,  function() ns:ScanButtons() end)
         C_Timer.After(5,  function() ns:ScanButtons() end)
         C_Timer.After(10, function() ns:ScanButtons() end)
-    elseif event == "PLAYER_REGEN_DISABLED" then
-        if ns.state.isOpen and ns.CloseOverlay then
-            ns:CloseOverlay(true)
-        end
     end
 end)
 

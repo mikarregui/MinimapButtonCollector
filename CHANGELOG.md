@@ -18,5 +18,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Changed
 - `/mbc list` now summarizes collected buttons grouped by source (LibDBIcon / minimap-child) and shows up to 10 names per source. Full dump available via `/mbc list full`.
 - Overlay hex layout now uses 8 px gap between buttons both horizontally and vertically, instead of edge-to-edge packing, so icons have room to breathe and are easier to read at a glance.
+- Overlay is no longer modal. The full-viewport click catcher has been removed — you can loot corpses, click NPCs, cast spells, etc. while the overlay is open, matching standard addon behavior. Close the overlay by clicking any collected button, re-clicking the trigger, or `/mbc`.
+- Overlay can now be opened during combat. Collected buttons are not secure frames, so reparenting them is taint-free. This lines up with how Atlas, Gargul, Details and similar addons handle combat, and lets you reach those buttons mid-pull. The previous auto-close on combat start has also been removed for consistency.
 
 [Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/HEAD...HEAD
