@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Minimap Button Collector logo" width="160">
+</p>
+
 # MinimapButtonCollector
 
 > One trigger button on your minimap. Click it, all your addon buttons fan onto the minimap itself. Click one, it closes. Done.
@@ -23,14 +27,14 @@ Install a handful of addons and your minimap edge turns into a ring of overlappi
 - **Smooth fade transition** — minimap dims, buttons appear, feels native
 - **Auto-close** — click any addon button and the overlay closes on its own
 - **Draggable trigger** — move it anywhere around the minimap edge
-- **Combat-safe** — overlay closes automatically if you enter combat, refuses to open during combat
+- **Non-modal** — the overlay coexists with world interactions (loot, NPCs, spells) and can be opened or kept open during combat
 - **Zero config** — install and it works
 
 ## Installation
 
 ### Via addon manager (recommended)
 
-Search for **MinimapButtonCollector** in [CurseForge](https://www.curseforge.com), [Wago](https://addons.wago.io), or [WowUp](https://wowup.io) once the addon is published there. For now, use the manual install below.
+Available on [CurseForge](https://www.curseforge.com/wow/addons/minimap-button-collector) — install via the CurseForge desktop app or [WowUp](https://wowup.io). Wago support coming in a future release.
 
 ### Manual
 
@@ -45,7 +49,7 @@ Search for **MinimapButtonCollector** in [CurseForge](https://www.curseforge.com
 
 - **Click** the trigger button on the minimap → overlay opens.
 - **Click any button** in the overlay → addon action runs, overlay closes.
-- **Re-click the trigger** or **click outside the minimap** → overlay closes.
+- **Re-click the trigger** → overlay closes.
 - **Drag the trigger** around the minimap edge to reposition it. Position persists.
 
 ### Slash commands
@@ -54,7 +58,8 @@ Search for **MinimapButtonCollector** in [CurseForge](https://www.curseforge.com
 |---|---|
 | `/mbc` | Toggle overlay open/closed |
 | `/mbc rescan` | Re-detect minimap buttons (use if an addon loaded late) |
-| `/mbc list` | Print the list of collected buttons (debug) |
+| `/mbc list` | Print a summary of collected buttons grouped by source |
+| `/mbc list full` | Print the full list of collected buttons (debug) |
 
 ## Development
 
@@ -89,7 +94,7 @@ Planned for future versions:
 - Editable blacklist (exclude specific addon buttons)
 - Drag & drop reorder inside the overlay
 - Search / filter by name
-- Publish to CurseForge and Wago
+- Publish to Wago
 
 ## Tech stack
 

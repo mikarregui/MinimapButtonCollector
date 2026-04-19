@@ -5,6 +5,7 @@
 ## Version: @project-version@
 ## SavedVariables: MinimapButtonCollectorDB
 ## X-License: MIT
+## X-Curse-Project-ID: 1518595
 
 embeds.xml
 Core.lua
