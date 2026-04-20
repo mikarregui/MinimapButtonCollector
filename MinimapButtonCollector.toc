@@ -4,9 +4,11 @@
 ## Author: mikarregui
 ## Version: @project-version@
 ## SavedVariables: MinimapButtonCollectorDB
+## SavedVariablesPerCharacter: MinimapButtonCollectorPerCharDB
 ## X-License: MIT
 ## X-Curse-Project-ID: 1518595
 
 embeds.xml
 Core.lua
 UI.lua
+Settings.lua

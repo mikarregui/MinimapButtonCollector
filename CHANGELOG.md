@@ -6,6 +6,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-04-19
+
+### ⚠ Breaking changes
+
+- **Hex overlay removed.** The overlay no longer covers the minimap. The single supported layout is now a **side panel** anchored to a configurable corner of the minimap. Full rationale in [docs/adr/0001-drop-hex-overlay-in-favor-of-side-panel.md](docs/adr/0001-drop-hex-overlay-in-favor-of-side-panel.md).
+- **SavedVariables schema bumped to v2.** The trigger position moves from the global DB (`MinimapButtonCollectorDB.minimap`) to a new per-character DB (`MinimapButtonCollectorPerCharDB`), so each of your characters keeps its own trigger angle. Your existing v1 angle is migrated automatically on first v2 login; a backup of the v1 DB is preserved under `MinimapButtonCollectorDB._legacy_v1` just in case.
+- **One-shot chat message** on the first v2 login announces the layout change and points at `/mbc config`.
+
+### Added
+
+- **Side panel layout** — clean floating grid anchored to a chosen corner of the minimap (below-left, below-right, above-left, above-right). Button count auto-sizes the grid.
+- **Native settings panel** — `/mbc config` (or right-click the trigger) opens a Blizzard-style AddOns settings page. For v2.0.0 it exposes the panel anchor and an About section with version, distribution links, and Ko-fi. Per-button hide/reorder land in v2.1.0; search in v2.2.0; Masque in v2.3.0.
+- `## SavedVariablesPerCharacter: MinimapButtonCollectorPerCharDB` in the `.toc`.
+- `docs/adr/` directory with the first Architecture Decision Record explaining why hex was dropped.
+- README: new Compatibility section covering ElvUI; roadmap restructured around the v2.x versions.
+
+### Changed
+
+- Fade transition animates only the side panel and its contained buttons; the minimap itself is no longer touched (no `Minimap:SetAlpha` anywhere in the addon). This removes a whole class of conflicts with ElvUI and other addons that skin the minimap.
+- `/mbc rescan` is now documented as rarely needed: late LibDBIcon registrations have been captured live since v1.0.3 via a `hooksecurefunc` on `LibDBIcon:Register`.
+
+### Removed
+
+- `UI.lua` hex-packing math, `overlayHost` frame, and `Minimap:SetAlpha` dim transition — all superseded by the side panel.
+
 ## [1.0.3] - 2026-04-19
 
 ### Added
@@ -50,7 +75,8 @@ Initial public release.
 - Slash commands: `/mbc` (toggle), `/mbc rescan` (re-detect), `/mbc list` (summary grouped by source, up to 10 names per source), `/mbc list full` (full dump).
 - Automated GitHub Releases via BigWigs Packager on tag push, resolving LibStub / CallbackHandler-1.0 / LibDataBroker-1.1 / LibDBIcon-1.0 externals from `.pkgmeta`.
 
-[Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.3...v2.0.0
 [1.0.3]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.0...v1.0.1

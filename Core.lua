@@ -163,13 +163,58 @@ if libDBIcon and type(libDBIcon.Register) == "function" then
     end)
 end
 
+-- Schema v1 → v2 migration.
+-- v1 stored the trigger angle globally (MinimapButtonCollectorDB.minimap).
+-- v2 moves it to a per-character DB and introduces global.* for layout
+-- preferences and perChar.hiddenButtons for the future hide feature. The
+-- v1 table is preserved under _legacy_v1 as a safety net.
+local function migrateSavedVariables()
+    MinimapButtonCollectorDB        = MinimapButtonCollectorDB or {}
+    MinimapButtonCollectorPerCharDB = MinimapButtonCollectorPerCharDB or {}
+
+    local db      = MinimapButtonCollectorDB
+    local perChar = MinimapButtonCollectorPerCharDB
+
+    local hadV1Data = db.minimap and db.minimap.minimapPos ~= nil
+    local alreadyOnV2 = db.schemaVersion == 2 and perChar.schemaVersion == 2
+
+    db.global = db.global or {}
+    db.global.panelAnchor     = db.global.panelAnchor     or "BOTTOMLEFT"
+    db.global.panelMaxRows    = db.global.panelMaxRows    or 8
+    db.global.autoHideInCombat = db.global.autoHideInCombat == true
+    db.global.hoverToOpen     = db.global.hoverToOpen     == true
+
+    perChar.minimap       = perChar.minimap       or {}
+    perChar.hiddenButtons = perChar.hiddenButtons or {}
+
+    if hadV1Data and not perChar.minimap.minimapPos then
+        perChar.minimap.minimapPos = db.minimap.minimapPos
+    end
+
+    if hadV1Data and not db._legacy_v1 then
+        db._legacy_v1 = { minimap = { minimapPos = db.minimap.minimapPos } }
+    end
+
+    db.schemaVersion      = 2
+    perChar.schemaVersion = 2
+
+    return hadV1Data and not alreadyOnV2
+end
+
+local function announceV2IfFirstTime()
+    local db = MinimapButtonCollectorDB
+    if db.global.v2MessageShown then return end
+    print("|cff55ff55MBC v2:|r the overlay is now a clean side panel next to the minimap. Your trigger position is preserved. Try |cffffffff/mbc config|r for options.")
+    db.global.v2MessageShown = true
+end
+
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:SetScript("OnEvent", function(_, event)
     if event == "PLAYER_LOGIN" then
-        MinimapButtonCollectorDB = MinimapButtonCollectorDB or {}
-        MinimapButtonCollectorDB.minimap = MinimapButtonCollectorDB.minimap or {}
+        local migrated = migrateSavedVariables()
+        if migrated then announceV2IfFirstTime() end
     elseif event == "PLAYER_ENTERING_WORLD" then
         ns:ScanButtons()
         C_Timer.After(2,  function() ns:ScanButtons() end)
@@ -210,9 +255,11 @@ SlashCmdList["MBC"] = function(msg)
             total = total + 1
         end
         print(("|cff55ff55MBC:|r %d button(s) total."):format(total))
+    elseif msg == "config" or msg == "settings" then
+        if ns.OpenSettings then ns:OpenSettings() end
     elseif msg == "" then
         if ns.ToggleOverlay then ns:ToggleOverlay() end
     else
-        print("|cff55ff55MBC:|r unknown command. Try /mbc, /mbc rescan, /mbc list.")
+        print("|cff55ff55MBC:|r unknown command. Try /mbc, /mbc rescan, /mbc list, /mbc config.")
     end
 end

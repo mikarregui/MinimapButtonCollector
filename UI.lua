@@ -1,11 +1,12 @@
 local addonName, ns = ...
 
-local FADE_DURATION         = 0.2
-local MINIMAP_DIMMED_ALPHA  = 0.4
-local BUTTON_SIZE           = 24
-local BUTTON_GAP            = 8
-local HEX_DX                = BUTTON_SIZE + BUTTON_GAP
-local HEX_DY                = BUTTON_SIZE + BUTTON_GAP
+local FADE_DURATION = 0.2
+local BUTTON_SIZE   = 24
+local BUTTON_GAP    = 8
+local PITCH         = BUTTON_SIZE + BUTTON_GAP
+local PADDING       = 10
+local MIN_COLS      = 3
+local MAX_COLS      = 8
 
 local function isUsable(frame)
     if not frame then return false end
@@ -13,6 +14,7 @@ local function isUsable(frame)
     return true
 end
 
+-- LibDataBroker + LibDBIcon trigger. Right-click opens the settings panel.
 local ldb = LibStub("LibDataBroker-1.1")
 local icon = LibStub("LibDBIcon-1.0")
 
@@ -20,69 +22,95 @@ local dataObject = ldb:NewDataObject("MinimapButtonCollector", {
     type = "launcher",
     text = "MBC",
     icon = "Interface\\Icons\\INV_Misc_Bag_10",
-    OnClick = function() ns:ToggleOverlay() end,
+    OnClick = function(_, btn)
+        if btn == "RightButton" and ns.OpenSettings then
+            ns:OpenSettings()
+        else
+            ns:ToggleOverlay()
+        end
+    end,
     OnTooltipShow = function(tt)
         tt:AddLine("Minimap Button Collector")
-        tt:AddLine("Click to open or close the overlay.", 1, 1, 1)
-        tt:AddLine("/mbc rescan to re-detect buttons.", 0.7, 0.7, 0.7)
+        tt:AddLine("Left-click: open or close panel", 1, 1, 1)
+        tt:AddLine("Right-click: settings", 1, 1, 1)
+        tt:AddLine("/mbc config  ·  /mbc rescan  ·  /mbc list", 0.7, 0.7, 0.7)
     end,
 })
 
 local registerFrame = CreateFrame("Frame")
 registerFrame:RegisterEvent("PLAYER_LOGIN")
 registerFrame:SetScript("OnEvent", function(self)
-    MinimapButtonCollectorDB = MinimapButtonCollectorDB or {}
-    MinimapButtonCollectorDB.minimap = MinimapButtonCollectorDB.minimap or {}
-    icon:Register("MinimapButtonCollector", dataObject, MinimapButtonCollectorDB.minimap)
+    MinimapButtonCollectorPerCharDB = MinimapButtonCollectorPerCharDB or {}
+    MinimapButtonCollectorPerCharDB.minimap = MinimapButtonCollectorPerCharDB.minimap or {}
+    icon:Register("MinimapButtonCollector", dataObject, MinimapButtonCollectorPerCharDB.minimap)
     self:UnregisterAllEvents()
 end)
 
-local function computeHexPositions(n)
-    if n <= 0 then return {} end
+-- Panel anchor presets: which minimap corner the panel attaches to, and how
+-- the panel grows from there (down for BOTTOM*, up for TOP*).
+local ANCHOR_PRESETS = {
+    BOTTOMLEFT  = { panelAnchor = "TOPLEFT",     mapAnchor = "BOTTOMLEFT",  x = 0, y = -4 },
+    BOTTOMRIGHT = { panelAnchor = "TOPRIGHT",    mapAnchor = "BOTTOMRIGHT", x = 0, y = -4 },
+    TOPLEFT     = { panelAnchor = "BOTTOMLEFT",  mapAnchor = "TOPLEFT",     x = 0, y = 4  },
+    TOPRIGHT    = { panelAnchor = "BOTTOMRIGHT", mapAnchor = "TOPRIGHT",    x = 0, y = 4  },
+}
 
-    local cols = math.ceil(math.sqrt(n))
-    local rows = math.ceil(n / cols)
-
-    local hasOddRow = rows > 1
-    local totalWidth  = (cols - 1) * HEX_DX + (hasOddRow and HEX_DX / 2 or 0)
-    local totalHeight = (rows - 1) * HEX_DY
-    local x0 = -totalWidth / 2
-    local y0 =  totalHeight / 2
-
-    local positions, i = {}, 0
-    for row = 0, rows - 1 do
-        local offset = (row % 2 == 1) and (HEX_DX / 2) or 0
-        for col = 0, cols - 1 do
-            i = i + 1
-            if i > n then break end
-            positions[i] = {
-                x = x0 + col * HEX_DX + offset,
-                y = y0 - row * HEX_DY,
-            }
-        end
-    end
-    return positions
+local function getAnchorConfig()
+    local db = MinimapButtonCollectorDB or {}
+    db.global = db.global or {}
+    return ANCHOR_PRESETS[db.global.panelAnchor] or ANCHOR_PRESETS.BOTTOMLEFT
 end
 
-local animFrame = CreateFrame("Frame")
+local sidePanel
 
-local overlayHost = CreateFrame("Frame", "MBCOverlayHost", UIParent)
-overlayHost:SetAllPoints(Minimap)
-overlayHost:SetFrameStrata("HIGH")
-overlayHost:Hide()
+local function buildSidePanel()
+    if sidePanel then return sidePanel end
 
--- ESC-to-close, the standard WoW way. WoW hides the topmost shown frame
--- listed in UISpecialFrames when the user presses Escape. We use a tiny
--- proxy instead of overlayHost itself so we can run an animated close via
--- our OnHide handler and keep overlayHost fully under our control.
-local escHandler = CreateFrame("Frame", "MBCEscHandler", UIParent)
-escHandler:Hide()
-escHandler:SetScript("OnHide", function()
-    if ns.state.isOpen then
-        ns:CloseOverlay()
+    sidePanel = CreateFrame(
+        "Frame",
+        "MBCSidePanel",
+        UIParent,
+        BackdropTemplateMixin and "BackdropTemplate" or nil
+    )
+    sidePanel:SetFrameStrata("HIGH")
+
+    if sidePanel.SetBackdrop then
+        sidePanel:SetBackdrop({
+            bgFile   = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
+            edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+            tile = true, tileSize = 32, edgeSize = 16,
+            insets = { left = 4, right = 4, top = 4, bottom = 4 },
+        })
     end
-end)
-tinsert(UISpecialFrames, "MBCEscHandler")
+
+    sidePanel:Hide()
+    return sidePanel
+end
+
+local function applyPanelAnchor(panel)
+    local cfg = getAnchorConfig()
+    panel:ClearAllPoints()
+    panel:SetPoint(cfg.panelAnchor, Minimap, cfg.mapAnchor, cfg.x, cfg.y)
+end
+
+local function computeGrid(n)
+    if n <= 0 then return 0, 0 end
+    local cols = math.ceil(math.sqrt(n))
+    if cols < MIN_COLS then cols = MIN_COLS end
+    if cols > MAX_COLS then cols = MAX_COLS end
+    local rows = math.ceil(n / cols)
+    return cols, rows
+end
+
+local function panelSizeFor(cols, rows)
+    local w = cols * PITCH - BUTTON_GAP + 2 * PADDING
+    local h = rows * PITCH - BUTTON_GAP + 2 * PADDING
+    return w, h
+end
+
+-- Alpha animator (same pattern as v1.0.3: single reusable frame, per-entry
+-- linear interpolation over `duration`, onDone callback fires once at t=1).
+local animFrame = CreateFrame("Frame")
 
 local function animateFade(entries, duration, onDone)
     local elapsed = 0
@@ -101,6 +129,17 @@ local function animateFade(entries, duration, onDone)
         end
     end)
 end
+
+-- ESC-to-close proxy. WoW hides the topmost shown frame listed in
+-- UISpecialFrames on Escape; our OnHide reroutes to the animated close.
+local escHandler = CreateFrame("Frame", "MBCEscHandler", UIParent)
+escHandler:Hide()
+escHandler:SetScript("OnHide", function()
+    if ns.state.isOpen then
+        ns:CloseOverlay()
+    end
+end)
+tinsert(UISpecialFrames, "MBCEscHandler")
 
 local function hookAutoClose(button, data)
     if data.hooked then return end
@@ -128,13 +167,14 @@ local function restoreButtons()
             btn:Hide()
         end
     end
-    Minimap:SetAlpha(1)
-    overlayHost:Hide()
+    if sidePanel then sidePanel:Hide() end
     escHandler:Hide()
 end
 
 function ns:OpenOverlay()
     if self.state.isOpen then return end
+
+    local panel = buildSidePanel()
 
     local ordered = {}
     for name, data in pairs(self.collectedButtons) do
@@ -151,18 +191,29 @@ function ns:OpenOverlay()
 
     self.state.isOpen = true
 
-    local positions = computeHexPositions(#ordered)
+    local cols, rows = computeGrid(#ordered)
+    local w, h = panelSizeFor(cols, rows)
+    panel:SetSize(w, h)
+    applyPanelAnchor(panel)
+
     local fadeEntries = {
-        { obj = Minimap, from = Minimap:GetAlpha(), to = MINIMAP_DIMMED_ALPHA },
+        { obj = panel, from = 0, to = 1 },
     }
 
     for i, entry in ipairs(ordered) do
         local btn = entry.data.button
-        local pos = positions[i]
+        local col = (i - 1) % cols
+        local row = math.floor((i - 1) / cols)
 
         btn:ClearAllPoints()
-        btn:SetParent(overlayHost)
-        btn:SetPoint("CENTER", overlayHost, "CENTER", pos.x, pos.y)
+        btn:SetParent(panel)
+        btn:SetPoint(
+            "TOPLEFT",
+            panel,
+            "TOPLEFT",
+            PADDING + col * PITCH,
+            -(PADDING + row * PITCH)
+        )
         btn:SetAlpha(0)
         entry.data.originalShow(btn)
 
@@ -170,7 +221,8 @@ function ns:OpenOverlay()
         fadeEntries[#fadeEntries + 1] = { obj = btn, from = 0, to = 1 }
     end
 
-    overlayHost:Show()
+    panel:SetAlpha(0)
+    panel:Show()
     escHandler:Show()
     animateFade(fadeEntries, FADE_DURATION)
 end
@@ -185,9 +237,10 @@ function ns:CloseOverlay(forced)
         return
     end
 
-    local fadeEntries = {
-        { obj = Minimap, from = Minimap:GetAlpha(), to = 1 },
-    }
+    local fadeEntries = {}
+    if sidePanel then
+        fadeEntries[#fadeEntries + 1] = { obj = sidePanel, from = sidePanel:GetAlpha(), to = 0 }
+    end
     for _, data in pairs(self.collectedButtons) do
         local btn = data.button
         if isUsable(btn) then
@@ -204,4 +257,18 @@ function ns:ToggleOverlay()
     else
         self:OpenOverlay()
     end
+end
+
+-- Settings panel entry point. Delegates to Settings.lua if loaded.
+function ns:OpenSettings()
+    if ns.OpenSettingsPanel then
+        ns:OpenSettingsPanel()
+    else
+        print("|cffffcc55MBC:|r settings panel not available.")
+    end
+end
+
+-- Re-apply anchor on the fly when the user changes it from settings.
+function ns:ReapplyPanelAnchor()
+    if sidePanel then applyPanelAnchor(sidePanel) end
 end
