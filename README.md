@@ -4,7 +4,7 @@
 
 # MinimapButtonCollector
 
-> One trigger button on your minimap. Click it, all your addon buttons fan onto the minimap itself. Click one, it closes. Done.
+> One trigger on your minimap. Click it, your addon buttons appear in a clean side panel. Click one, it closes. Done.
 
 [![Release](https://img.shields.io/github/v/release/mikarregui/MinimapButtonCollector?sort=semver&display_name=tag)](https://github.com/mikarregui/MinimapButtonCollector/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -20,17 +20,17 @@
 
 ## Why
 
-Install a handful of addons and your minimap edge turns into a ring of overlapping little buttons. Finding the one you want becomes a game in itself. MinimapButtonCollector reclaims that space: a single trigger sits on the minimap, and when you click it, all the collected addon buttons fan onto the minimap itself in a clean hexagonal layout.
+Install a handful of addons and your minimap edge turns into a ring of overlapping little buttons. Finding the one you want becomes a game in itself. MinimapButtonCollector reclaims that space: a single trigger sits on the minimap, and when you click it, all the collected addon buttons appear in a clean side panel anchored to the minimap.
 
 ## Features
 
 - **Hybrid detection** — catches modern LibDBIcon buttons (including those registered after login, captured live) and legacy minimap buttons
-- **On-minimap overlay** — buttons appear on top of the minimap, not in a floating panel
-- **Smooth fade transition** — minimap dims, buttons appear, feels native
-- **Auto-close** — click any addon button and the overlay closes on its own
-- **Draggable trigger** — move it anywhere around the minimap edge
-- **Non-modal** — the overlay coexists with world interactions (loot, NPCs, spells) and can be opened or kept open during combat
-- **Zero config** — install and it works
+- **Side panel layout** — buttons appear in a floating panel anchored to a configurable corner of the minimap. Never covers the map itself, so raid / BG / quest navigation stays readable
+- **Smooth fade transition** — 200 ms panel fade, no jarring pop-in
+- **Auto-close** — click any addon button and the panel closes on its own
+- **Draggable trigger** — move it anywhere around the minimap edge; position persists per-character
+- **Non-modal** — the panel coexists with world interactions (loot, NPCs, spells) and can be opened or kept open during combat
+- **Native settings** — `/mbc config` or right-click the trigger opens a Blizzard-style settings panel
 
 ## Installation
 
@@ -49,23 +49,29 @@ Available on [CurseForge](https://www.curseforge.com/wow/addons/minimap-button-c
 
 ## Usage
 
-- **Click** the trigger button on the minimap → overlay opens.
-- **Click any button** in the overlay → addon action runs, overlay closes.
-- **Re-click the trigger** or press **ESC** → overlay closes.
-- **Drag the trigger** around the minimap edge to reposition it. Position persists.
+- **Click** the trigger button on the minimap → side panel opens.
+- **Click any button** in the panel → addon action runs, panel closes.
+- **Re-click the trigger** or press **ESC** → panel closes.
+- **Right-click the trigger** → settings panel.
+- **Drag the trigger** around the minimap edge to reposition it. Position persists per-character.
 
 ### Slash commands
 
 | Command | Action |
 |---|---|
-| `/mbc` | Toggle overlay open/closed |
-| `/mbc rescan` | Re-detect minimap buttons (use if an addon loaded late) |
+| `/mbc` | Toggle the side panel |
+| `/mbc config` | Open the settings panel |
+| `/mbc rescan` | Re-detect minimap buttons (rarely needed — new LibDBIcon buttons are captured live) |
 | `/mbc list` | Print a summary of collected buttons grouped by source |
 | `/mbc list full` | Print the full list of collected buttons (debug) |
 
+## Compatibility
+
+The side panel is an independent frame anchored to the minimap via `SetPoint`. It does not manipulate the minimap's alpha or reparent Blizzard frames, so it coexists cleanly with ElvUI minimap skinning and other addons that reshape the minimap.
+
 ## Development
 
-This repo is set up for serious iteration. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
+This repo is set up for serious iteration. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow. Architectural decisions are recorded in [docs/adr/](docs/adr/).
 
 ### Quick start
 
@@ -90,12 +96,13 @@ Push a tag `vX.Y.Z` to `main`. The [BigWigs Packager](https://github.com/BigWigs
 
 ## Roadmap
 
-Planned for future versions:
+Planned:
 
-- Hide/show individual buttons from the overlay
-- Editable blacklist (exclude specific addon buttons)
-- Drag & drop reorder inside the overlay
-- Search / filter by name
+- **v2.1.0** — hide and reorder individual buttons from the settings panel
+- **v2.2.0** — search / filter at the top of the panel
+- **v2.3.0** — [Masque](https://www.curseforge.com/wow/addons/masque) skin support
+
+Future ideas: drag & drop reorder inside the panel, editable blacklist, additional layout options if users ask for them with data.
 
 ## Tech stack
 
