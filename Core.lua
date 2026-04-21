@@ -98,7 +98,7 @@ function ns:AdoptButton(name, button, source)
         return false
     end
 
-    self.collectedButtons[name] = {
+    local data = {
         button = button,
         originalParent = button:GetParent(),
         originalAlpha = button:GetAlpha() or 1,
@@ -107,6 +107,29 @@ function ns:AdoptButton(name, button, source)
         source = source,
         hooked = false,
     }
+    self.collectedButtons[name] = data
+
+    -- Preserve the button's natural minimap-button look inside our panel:
+    -- LibDBIcon's tracking border ring and minimap-background disc are part
+    -- of what makes the icon read as "a button" — hiding them left the icon
+    -- floating with no visual framing. Instead, keep the decorations and let
+    -- the grid pitch in UI.lua give them room to breathe (same approach the
+    -- dominant addons in this category use).
+    --
+    -- Re-show anything a previous MBC version may have hidden, so users
+    -- upgrading from v2.0.0-dev iterations get a clean state without needing
+    -- a full game restart.
+    if type(button.border) == "table" and button.border.Show then
+        button.border:Show()
+    end
+    for _, region in ipairs({ button:GetRegions() }) do
+        if region.GetObjectType and region:GetObjectType() == "Texture" then
+            local layer = region.GetDrawLayer and region:GetDrawLayer()
+            if (layer == "OVERLAY" or layer == "BACKGROUND") and region.Show then
+                region:Show()
+            end
+        end
+    end
 
     -- Prevent the owning addon from re-showing the button outside our overlay.
     -- Hide() stays on the original method so we and the addon can still hide it.
@@ -179,10 +202,13 @@ local function migrateSavedVariables()
     local alreadyOnV2 = db.schemaVersion == 2 and perChar.schemaVersion == 2
 
     db.global = db.global or {}
-    db.global.panelAnchor     = db.global.panelAnchor     or "BOTTOMLEFT"
+    db.global.panelAnchor     = db.global.panelAnchor     or "LEFT"
     db.global.panelMaxRows    = db.global.panelMaxRows    or 8
     db.global.autoHideInCombat = db.global.autoHideInCombat == true
     db.global.hoverToOpen     = db.global.hoverToOpen     == true
+    if db.global.closeOnOutsideClick == nil then
+        db.global.closeOnOutsideClick = true
+    end
 
     perChar.minimap       = perChar.minimap       or {}
     perChar.hiddenButtons = perChar.hiddenButtons or {}
@@ -225,12 +251,16 @@ end)
 
 SLASH_MBC1 = "/mbc"
 SlashCmdList["MBC"] = function(msg)
-    msg = (msg or ""):lower():match("^%s*(.-)%s*$") or ""
+    -- Preserve the raw (case-sensitive) argument while dispatching on the
+    -- lowercased command — some subcommands (debug) need the original case
+    -- because collectedButtons keys are case-sensitive (e.g. "Gargul").
+    local raw   = (msg or ""):match("^%s*(.-)%s*$") or ""
+    local lower = raw:lower()
 
-    if msg == "rescan" then
+    if lower == "rescan" then
         local added = ns:ScanButtons()
         print("|cff55ff55MBC:|r rescan added " .. added .. " button(s), " .. ns:CountButtons() .. " total.")
-    elseif msg == "list" then
+    elseif lower == "list" then
         local bySource, total = {}, 0
         for name, data in pairs(ns.collectedButtons) do
             bySource[data.source] = bySource[data.source] or {}
@@ -248,18 +278,50 @@ SlashCmdList["MBC"] = function(msg)
             end
         end
         print(("|cff55ff55MBC:|r %d button(s) total."):format(total))
-    elseif msg == "list full" then
+    elseif lower == "list full" then
         local total = 0
         for name, data in pairs(ns.collectedButtons) do
             print("  " .. name .. "  (" .. data.source .. ")")
             total = total + 1
         end
         print(("|cff55ff55MBC:|r %d button(s) total."):format(total))
-    elseif msg == "config" or msg == "settings" then
+    elseif lower == "config" or lower == "settings" then
         if ns.OpenSettings then ns:OpenSettings() end
-    elseif msg == "" then
+    elseif lower:match("^debug") then
+        local target = raw:match("^%S+%s+(.+)$")
+        if not target or target == "" then
+            print("|cffffcc55MBC:|r usage: /mbc debug <ButtonName> — case-sensitive, use /mbc list to see exact names.")
+            return
+        end
+        local data = ns.collectedButtons[target]
+        if not data then
+            print("|cffff5555MBC:|r no collected button named '" .. target .. "'. Try /mbc list (names are case-sensitive).")
+        else
+            local btn = data.button
+            print(("|cff55ff55MBC debug:|r %s  size=%.0fx%.0f  alpha=%.2f  shown=%s  source=%s")
+                :format(target, btn:GetWidth() or 0, btn:GetHeight() or 0,
+                        btn:GetAlpha() or 0, tostring(btn:IsShown()), data.source))
+            for i, region in ipairs({ btn:GetRegions() }) do
+                if region.GetObjectType and region:GetObjectType() == "Texture" then
+                    local tex = region.GetTexture and region:GetTexture()
+                    local r, g, b, a = 1, 1, 1, 1
+                    if region.GetVertexColor then
+                        r, g, b, a = region:GetVertexColor()
+                    end
+                    local alpha = region.GetAlpha and region:GetAlpha() or 1
+                    print(("  [%d] %s  layer=%s  size=%.0fx%.0f  shown=%s  alpha=%.2f  vc=%.2f,%.2f,%.2f,%.2f  tex=%s")
+                        :format(i, region:GetObjectType(),
+                                tostring(region:GetDrawLayer()),
+                                region:GetWidth() or 0, region:GetHeight() or 0,
+                                tostring(region:IsShown()), alpha,
+                                r or 1, g or 1, b or 1, a or 1,
+                                tostring(tex)))
+                end
+            end
+        end
+    elseif lower == "" then
         if ns.ToggleOverlay then ns:ToggleOverlay() end
     else
-        print("|cff55ff55MBC:|r unknown command. Try /mbc, /mbc rescan, /mbc list, /mbc config.")
+        print("|cff55ff55MBC:|r unknown command. Try /mbc, /mbc rescan, /mbc list, /mbc config, /mbc debug <ButtonName>.")
     end
 end

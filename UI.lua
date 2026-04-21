@@ -1,12 +1,16 @@
 local addonName, ns = ...
 
 local FADE_DURATION = 0.2
-local BUTTON_SIZE   = 24
-local BUTTON_GAP    = 8
-local PITCH         = BUTTON_SIZE + BUTTON_GAP
-local PADDING       = 10
-local MIN_COLS      = 3
-local MAX_COLS      = 8
+-- LibDBIcon buttons ship with a 53 px decorative ring that extends beyond
+-- the button frame itself (31 px). We keep those decorations intact (they
+-- are what makes the icon read as a button) and size the grid cells big
+-- enough that adjacent rings don't overlap. Pitch and padding are tuned
+-- for LibDBIcon's ring; non-LibDBIcon buttons (MoveAny, Zygor, legacy)
+-- simply sit inside a larger cell.
+local PITCH    = 40
+local PADDING  = 12
+local MIN_COLS = 3
+local MAX_COLS = 8
 
 local function isUsable(frame)
     if not frame then return false end
@@ -47,18 +51,26 @@ registerFrame:SetScript("OnEvent", function(self)
 end)
 
 -- Panel anchor presets: which minimap corner the panel attaches to, and how
--- the panel grows from there (down for BOTTOM*, up for TOP*).
+-- the panel grows from there. LEFT/RIGHT place the panel beside the minimap;
+-- BOTTOM*/TOP* place it below/above, aligned to a left or right edge.
 local ANCHOR_PRESETS = {
-    BOTTOMLEFT  = { panelAnchor = "TOPLEFT",     mapAnchor = "BOTTOMLEFT",  x = 0, y = -4 },
-    BOTTOMRIGHT = { panelAnchor = "TOPRIGHT",    mapAnchor = "BOTTOMRIGHT", x = 0, y = -4 },
-    TOPLEFT     = { panelAnchor = "BOTTOMLEFT",  mapAnchor = "TOPLEFT",     x = 0, y = 4  },
-    TOPRIGHT    = { panelAnchor = "BOTTOMRIGHT", mapAnchor = "TOPRIGHT",    x = 0, y = 4  },
+    LEFT        = { panelAnchor = "TOPRIGHT",    mapAnchor = "TOPLEFT",     x = -4, y = 0  },
+    RIGHT       = { panelAnchor = "TOPLEFT",     mapAnchor = "TOPRIGHT",    x =  4, y = 0  },
+    BOTTOMLEFT  = { panelAnchor = "TOPLEFT",     mapAnchor = "BOTTOMLEFT",  x = 0,  y = -4 },
+    BOTTOMRIGHT = { panelAnchor = "TOPRIGHT",    mapAnchor = "BOTTOMRIGHT", x = 0,  y = -4 },
+    TOPLEFT     = { panelAnchor = "BOTTOMLEFT",  mapAnchor = "TOPLEFT",     x = 0,  y = 4  },
+    TOPRIGHT    = { panelAnchor = "BOTTOMRIGHT", mapAnchor = "TOPRIGHT",    x = 0,  y = 4  },
 }
 
 local function getAnchorConfig()
     local db = MinimapButtonCollectorDB or {}
     db.global = db.global or {}
-    return ANCHOR_PRESETS[db.global.panelAnchor] or ANCHOR_PRESETS.BOTTOMLEFT
+    return ANCHOR_PRESETS[db.global.panelAnchor] or ANCHOR_PRESETS.LEFT
+end
+
+local function shouldCatchOutsideClicks()
+    local db = MinimapButtonCollectorDB
+    return db and db.global and db.global.closeOnOutsideClick == true
 end
 
 local sidePanel
@@ -75,12 +87,22 @@ local function buildSidePanel()
     sidePanel:SetFrameStrata("HIGH")
 
     if sidePanel.SetBackdrop then
+        -- Thin gold tooltip-style border + warm pale-gold fill at low alpha.
+        -- The fill is lighter than both the icons and the world behind, so
+        -- mixing it in LIGHTENS rather than darkens — icons stand out MORE,
+        -- not less. This is the one path to "fondo sin dim" that math allows.
         sidePanel:SetBackdrop({
-            bgFile   = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
-            edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-            tile = true, tileSize = 32, edgeSize = 16,
-            insets = { left = 4, right = 4, top = 4, bottom = 4 },
+            bgFile   = "Interface\\Buttons\\WHITE8X8",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true, tileSize = 8,
+            edgeSize = 10,
         })
+        if sidePanel.SetBackdropColor then
+            sidePanel:SetBackdropColor(0.82, 0.70, 0.35, 0.15)
+        end
+        if sidePanel.SetBackdropBorderColor then
+            sidePanel:SetBackdropBorderColor(0.78, 0.64, 0.30, 0.9)
+        end
     end
 
     sidePanel:Hide()
@@ -103,9 +125,7 @@ local function computeGrid(n)
 end
 
 local function panelSizeFor(cols, rows)
-    local w = cols * PITCH - BUTTON_GAP + 2 * PADDING
-    local h = rows * PITCH - BUTTON_GAP + 2 * PADDING
-    return w, h
+    return cols * PITCH + 2 * PADDING, rows * PITCH + 2 * PADDING
 end
 
 -- Alpha animator (same pattern as v1.0.3: single reusable frame, per-entry
@@ -141,6 +161,22 @@ escHandler:SetScript("OnHide", function()
 end)
 tinsert(UISpecialFrames, "MBCEscHandler")
 
+-- Optional click-outside-to-close catcher. Built lazily, shown only while the
+-- panel is open AND the user has the setting enabled (default ON for v2).
+-- Covers the full viewport behind the panel; MEDIUM strata means clicks on
+-- the panel itself (HIGH) still reach the buttons.
+local outsideCatcher
+
+local function buildOutsideCatcher()
+    if outsideCatcher then return end
+    outsideCatcher = CreateFrame("Frame", nil, UIParent)
+    outsideCatcher:SetAllPoints(UIParent)
+    outsideCatcher:SetFrameStrata("MEDIUM")
+    outsideCatcher:EnableMouse(true)
+    outsideCatcher:SetScript("OnMouseDown", function() ns:CloseOverlay() end)
+    outsideCatcher:Hide()
+end
+
 local function hookAutoClose(button, data)
     if data.hooked then return end
     button:HookScript("OnClick", function()
@@ -152,23 +188,20 @@ local function hookAutoClose(button, data)
 end
 
 local function restoreButtons()
+    -- Collected buttons stay permanently parented to the side panel once
+    -- adopted; we don't reassign their parent or point every close. Just
+    -- Hide() each so any OnUpdate loop in the owning addon stops firing
+    -- while the panel is down. Panel:Hide() handles visual disappearance
+    -- via parent-inheritance; per-button alpha is already 1 and stays so.
     for _, data in pairs(ns.collectedButtons) do
         local btn = data.button
         if isUsable(btn) then
-            btn:ClearAllPoints()
-            if data.originalParent then
-                btn:SetParent(data.originalParent)
-            end
-            local p = data.point
-            if p and p[1] then
-                pcall(btn.SetPoint, btn, p[1], p[2], p[3], p[4], p[5])
-            end
-            btn:SetAlpha(data.originalAlpha or 1)
             btn:Hide()
         end
     end
     if sidePanel then sidePanel:Hide() end
     escHandler:Hide()
+    if outsideCatcher then outsideCatcher:Hide() end
 end
 
 function ns:OpenOverlay()
@@ -196,6 +229,9 @@ function ns:OpenOverlay()
     panel:SetSize(w, h)
     applyPanelAnchor(panel)
 
+    -- Fade only the panel; collected buttons stay at alpha 1 and inherit
+    -- effective visibility from the panel's current alpha. Saves per-button
+    -- fade entries and matches how Blizzard-style frames animate.
     local fadeEntries = {
         { obj = panel, from = 0, to = 1 },
     }
@@ -207,6 +243,11 @@ function ns:OpenOverlay()
 
         btn:ClearAllPoints()
         btn:SetParent(panel)
+        -- LibDBIcon creates its buttons at strata MEDIUM. The panel is HIGH,
+        -- and a child that inherits but doesn't re-assert can end up drawn
+        -- BELOW its parent's backdrop textures. Force the button above.
+        btn:SetFrameStrata("HIGH")
+        btn:SetFrameLevel(panel:GetFrameLevel() + 10)
         btn:SetPoint(
             "TOPLEFT",
             panel,
@@ -214,16 +255,21 @@ function ns:OpenOverlay()
             PADDING + col * PITCH,
             -(PADDING + row * PITCH)
         )
-        btn:SetAlpha(0)
+        btn:SetAlpha(1)
         entry.data.originalShow(btn)
 
         hookAutoClose(btn, entry.data)
-        fadeEntries[#fadeEntries + 1] = { obj = btn, from = 0, to = 1 }
     end
 
     panel:SetAlpha(0)
     panel:Show()
     escHandler:Show()
+
+    if shouldCatchOutsideClicks() then
+        buildOutsideCatcher()
+        outsideCatcher:Show()
+    end
+
     animateFade(fadeEntries, FADE_DURATION)
 end
 
@@ -237,15 +283,10 @@ function ns:CloseOverlay(forced)
         return
     end
 
+    -- Panel-only fade; children inherit effective visibility.
     local fadeEntries = {}
     if sidePanel then
         fadeEntries[#fadeEntries + 1] = { obj = sidePanel, from = sidePanel:GetAlpha(), to = 0 }
-    end
-    for _, data in pairs(self.collectedButtons) do
-        local btn = data.button
-        if isUsable(btn) then
-            fadeEntries[#fadeEntries + 1] = { obj = btn, from = btn:GetAlpha(), to = 0 }
-        end
     end
 
     animateFade(fadeEntries, FADE_DURATION, restoreButtons)

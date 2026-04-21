@@ -16,16 +16,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
-- **Side panel layout** — clean floating grid anchored to a chosen corner of the minimap (below-left, below-right, above-left, above-right). Button count auto-sizes the grid.
-- **Native settings panel** — `/mbc config` (or right-click the trigger) opens a Blizzard-style AddOns settings page. For v2.0.0 it exposes the panel anchor and an About section with version, distribution links, and Ko-fi. Per-button hide/reorder land in v2.1.0; search in v2.2.0; Masque in v2.3.0.
+- **Side panel layout** — grid anchored to a chosen corner of the minimap with a thin gold border and a subtle warm fill (pale gold at 15 % alpha). Six anchor presets: `LEFT`, `RIGHT`, `BOTTOMLEFT`, `BOTTOMRIGHT`, `TOPLEFT`, `TOPRIGHT`. Button count auto-sizes the grid. The fill is lighter than both the icons and the world behind, so mixing it in *raises* pixel luminance rather than lowering it — icons stand out against the panel rather than being dimmed by contrast.
+- **Settings panel** — `/mbc config` (or right-click the trigger) opens a standalone floating settings window. v2.0.0 exposes the panel anchor, the "close on outside click" toggle, and an About section with version, distribution links, and Ko-fi. Per-button hide/reorder land in v2.1.0; search in v2.2.0; Masque in v2.3.0.
+- **"Close panel when clicking outside"** toggle in settings, default **ON**. Click anywhere outside the panel and it closes; disable in settings for a more WoW-native non-modal behavior.
 - `## SavedVariablesPerCharacter: MinimapButtonCollectorPerCharDB` in the `.toc`.
 - `docs/adr/` directory with the first Architecture Decision Record explaining why hex was dropped.
 - README: new Compatibility section covering ElvUI; roadmap restructured around the v2.x versions.
+- `/mbc debug <ButtonName>` diagnostic command — dumps per-region info (type, layer, size, alpha, vertex colour, texture id, shown state) for a collected button. Useful for reporting visual issues with unusual addon buttons.
 
 ### Changed
 
+- **Default panel anchor is `LEFT`** (panel to the left of the minimap) — natural placement when the minimap is in the top-right corner of the screen (TBC default), leaves the map itself fully visible and lets the panel grow downward.
 - Fade transition animates only the side panel and its contained buttons; the minimap itself is no longer touched (no `Minimap:SetAlpha` anywhere in the addon). This removes a whole class of conflicts with ElvUI and other addons that skin the minimap.
+- Grid pitch is sized to fit LibDBIcon's ~53 px tracking border without adjacent rings overlapping — each collected button keeps its native minimap-button framing (ring + inner disc + icon) instead of being stripped of decorations.
 - `/mbc rescan` is now documented as rarely needed: late LibDBIcon registrations have been captured live since v1.0.3 via a `hooksecurefunc` on `LibDBIcon:Register`.
+
+### Fixed
+
+- Collected LibDBIcon buttons no longer look desaturated inside the panel. Earlier iterations tried hiding their decorative textures; real-user smoke testing showed the actual cause was the dark panel backdrop reducing perceived icon saturation by visual contrast. The shipping fix keeps each button's native framing intact (tracking ring + background disc + icon) and pairs a slightly wider grid pitch with a thin gold border plus a pale warm fill at low alpha — the fill's higher luminance makes icons stand out *more* against the panel, not less.
 
 ### Removed
 
