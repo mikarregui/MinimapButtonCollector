@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-04-24
+
+### Fixed
+
+- **Excluded LibDBIcon buttons now return to the minimap.** When a button was unchecked in the Collected buttons settings section (or excluded via `/mbc exclude`) after having been placed in the panel, it could stay "glued" to its panel-grid position instead of re-anchoring to its minimap angle. `ReleaseButton` now clears all points and resets the frame strata before delegating to `LibDBIcon-1.0:Show`, so the library's `CENTER → Minimap` anchor is the only one active after release. Non-LibDBIcon (legacy `minimap-child`) buttons were not affected — that code path already cleared points explicitly.
+
 ## [2.1.0] - 2026-04-24
 
 ### Added
@@ -95,7 +101,8 @@ Initial public release.
 - Slash commands: `/mbc` (toggle), `/mbc rescan` (re-detect), `/mbc list` (summary grouped by source, up to 10 names per source), `/mbc list full` (full dump).
 - Automated GitHub Releases via BigWigs Packager on tag push, resolving LibStub / CallbackHandler-1.0 / LibDataBroker-1.1 / LibDBIcon-1.0 externals from `.pkgmeta`.
 
-[Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/mikarregui/MinimapButtonCollector/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/mikarregui/MinimapButtonCollector/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.3...v2.0.0
 [1.0.3]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.2...v1.0.3
