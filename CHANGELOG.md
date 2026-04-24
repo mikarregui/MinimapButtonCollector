@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-04-24
+
+### Added
+
+- **Per-button exclusion** — individual addon buttons can be kept on the minimap instead of being collected into the panel. Useful when an icon communicates state at a glance (e.g. a gear-manager button showing the equipped set) and only makes sense as a permanent presence on the minimap. Toggled from the new **Collected buttons** section in `/mbc config` or via `/mbc exclude <ButtonName>` / `/mbc include <ButtonName>`. Per-character.
+- **Per-button reorder** — `▲` / `▼` arrows on each row of the Collected buttons settings section swap the button's position inside the panel. Arrows at the extremes are disabled so clicks never produce a no-op move. Per-character, persists across reloads.
+- **Collected buttons settings section** — scrollable list of every detected button with a "Collect in panel" checkbox + reorder arrows + button name. Excluded entries appear below the collected ones (alphabetical) so re-enabling them is a single click away.
+
+### Changed
+
+- Internal: the unused `perChar.hiddenButtons` stub left by v2.0.0 is renamed to `excludedButtons` (and the empty v2.0.0 field is dropped during migration). New `perChar.buttonOrder` stores the panel ordering. No schema version bump — all handled in the existing idempotent `migrateSavedVariables`.
+
 ## [2.0.0] - 2026-04-19
 
 ### ⚠ Breaking changes
@@ -83,7 +95,8 @@ Initial public release.
 - Slash commands: `/mbc` (toggle), `/mbc rescan` (re-detect), `/mbc list` (summary grouped by source, up to 10 names per source), `/mbc list full` (full dump).
 - Automated GitHub Releases via BigWigs Packager on tag push, resolving LibStub / CallbackHandler-1.0 / LibDataBroker-1.1 / LibDBIcon-1.0 externals from `.pkgmeta`.
 
-[Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/mikarregui/MinimapButtonCollector/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.3...v2.0.0
 [1.0.3]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.1...v1.0.2
