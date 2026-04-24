@@ -118,11 +118,15 @@ Future ideas: drag & drop reorder inside the panel, additional layout options if
 
 ## Support
 
-If **Minimap Button Collector** saves you some minimap real estate and you feel like saying thanks, you can tip me a coffee on Ko-fi. Completely optional — the addon stays free and fully functional regardless.
+Open an issue on GitHub if you spot something off — `/mbc list full` or `/mbc debug <ButtonName>` gives me the context I need.
 
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-tip%20me-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/mikarregui)
+### Tip jar ☕
 
-When tipping, you can optionally leave your in-game name + server (or GitHub handle) in the message and I'll add you to a supporters list in the next release. Totally optional — anonymous tips are just as welcome.
+If this addon saves you some minimap real estate, consider buying me a coffee. Entirely optional — the addon is free and stays free.
+
+When tipping, you can optionally leave your in-game name + server (or GitHub handle) and I'll add you to a supporters list in the next release. Anonymous tips are just as welcome.
+
+[![Support on Ko-fi](https://storage.ko-fi.com/cdn/kofi2.png?v=3)](https://ko-fi.com/mikarregui)
 
 ## License
 
