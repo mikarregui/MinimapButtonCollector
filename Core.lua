@@ -194,6 +194,13 @@ function ns:ReleaseButton(name)
             if data.originalParent and btn.SetParent then
                 btn:SetParent(data.originalParent)
             end
+            -- LibDBIcon's updatePosition sets a CENTER anchor, which doesn't
+            -- replace the TOPLEFT anchor OpenOverlay put on the button — both
+            -- would coexist and the panel-grid TOPLEFT would win visually,
+            -- leaving the button "clavado" in the overlay. Clear first so the
+            -- CENTER anchor lib:Refresh sets is the only one active.
+            if btn.ClearAllPoints then btn:ClearAllPoints() end
+            if btn.SetFrameStrata then btn:SetFrameStrata("MEDIUM") end
             local lib = LibStub and LibStub("LibDBIcon-1.0", true)
             if lib and lib.Show then
                 pcall(lib.Show, lib, name)
