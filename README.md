@@ -26,6 +26,8 @@ Install a handful of addons and your minimap edge turns into a ring of overlappi
 
 - **Hybrid detection** — catches modern LibDBIcon buttons (including those registered after login, captured live) and legacy minimap buttons
 - **Side panel layout** — buttons appear in a floating panel anchored to a configurable corner of the minimap. Never covers the map itself, so raid / BG / quest navigation stays readable
+- **Per-button exclusion** — keep individual buttons on the minimap instead of collecting them, ideal for icons whose look communicates state at a glance
+- **Reorder inside the panel** — arrange collected buttons in the order that makes sense for you, per character
 - **Smooth fade transition** — 200 ms panel fade, no jarring pop-in
 - **Auto-close** — click any addon button and the panel closes on its own
 - **Draggable trigger** — move it anywhere around the minimap edge; position persists per-character
@@ -61,6 +63,8 @@ Available on [CurseForge](https://www.curseforge.com/wow/addons/minimap-button-c
 |---|---|
 | `/mbc` | Toggle the side panel |
 | `/mbc config` | Open the settings panel |
+| `/mbc exclude <ButtonName>` | Keep a specific button on the minimap (never collect it). Case-sensitive — use `/mbc list` to see exact names |
+| `/mbc include <ButtonName>` | Undo an exclusion; the button goes back into the panel |
 | `/mbc rescan` | Re-detect minimap buttons (rarely needed — new LibDBIcon buttons are captured live) |
 | `/mbc list` | Print a summary of collected buttons grouped by source |
 | `/mbc list full` | Print the full list of collected buttons (debug) |
@@ -98,11 +102,10 @@ Push a tag `vX.Y.Z` to `main`. The [BigWigs Packager](https://github.com/BigWigs
 
 Planned:
 
-- **v2.1.0** — hide and reorder individual buttons from the settings panel
 - **v2.2.0** — search / filter at the top of the panel
 - **v2.3.0** — [Masque](https://www.curseforge.com/wow/addons/masque) skin support
 
-Future ideas: drag & drop reorder inside the panel, editable blacklist, additional layout options if users ask for them with data.
+Future ideas: drag & drop reorder inside the panel, additional layout options if users ask for them with data.
 
 ## Tech stack
 
@@ -118,6 +121,8 @@ Future ideas: drag & drop reorder inside the panel, editable blacklist, addition
 If **Minimap Button Collector** saves you some minimap real estate and you feel like saying thanks, you can tip me a coffee on Ko-fi. Completely optional — the addon stays free and fully functional regardless.
 
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-tip%20me-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/mikarregui)
+
+When tipping, you can optionally leave your in-game name + server (or GitHub handle) in the message and I'll add you to a supporters list in the next release. Totally optional — anonymous tips are just as welcome.
 
 ## License
 

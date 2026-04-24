@@ -92,6 +92,11 @@ function ns:AdoptButton(name, button, source)
     if self.collectedButtons[name] then return false end
     if not isUsable(button) then return false end
 
+    local perChar = MinimapButtonCollectorPerCharDB
+    if perChar and perChar.excludedButtons and perChar.excludedButtons[name] then
+        return false
+    end
+
     local owner = conflictOwner(button)
     if owner then
         print("|cff5588ffMBC:|r skipping " .. name .. " (managed by " .. owner .. ")")
@@ -170,6 +175,131 @@ function ns:ScanButtons()
     return added
 end
 
+-- Inverse of AdoptButton: returns a previously-collected button to its
+-- native state on the minimap edge. LibDBIcon buttons are restored via the
+-- lib's own Show() so it re-anchors at the saved minimapPos; legacy
+-- minimap-child buttons get their parent, point and strata put back.
+function ns:ReleaseButton(name)
+    local data = self.collectedButtons[name]
+    if not data then return false end
+
+    local btn = data.button
+
+    if data.originalShow and isUsable(btn) then
+        btn.Show = data.originalShow
+    end
+
+    if isUsable(btn) then
+        if data.source == "libdbicon" or data.source == "libdbicon-live" then
+            if data.originalParent and btn.SetParent then
+                btn:SetParent(data.originalParent)
+            end
+            local lib = LibStub and LibStub("LibDBIcon-1.0", true)
+            if lib and lib.Show then
+                pcall(lib.Show, lib, name)
+            else
+                btn:Show()
+            end
+        else
+            if data.originalParent and btn.SetParent then
+                btn:SetParent(data.originalParent)
+            end
+            if btn.ClearAllPoints then btn:ClearAllPoints() end
+            if data.point and data.point[1] and btn.SetPoint then
+                pcall(btn.SetPoint, btn, unpack(data.point))
+            end
+            if btn.SetFrameStrata then btn:SetFrameStrata("MEDIUM") end
+            btn:Show()
+        end
+    end
+
+    self.collectedButtons[name] = nil
+    return true
+end
+
+function ns:IsExcluded(name)
+    local perChar = MinimapButtonCollectorPerCharDB
+    return perChar and perChar.excludedButtons and perChar.excludedButtons[name] == true
+end
+
+function ns:ExcludeButton(name)
+    MinimapButtonCollectorPerCharDB.excludedButtons = MinimapButtonCollectorPerCharDB.excludedButtons or {}
+    MinimapButtonCollectorPerCharDB.excludedButtons[name] = true
+    return self:ReleaseButton(name)
+end
+
+function ns:IncludeButton(name)
+    MinimapButtonCollectorPerCharDB.excludedButtons = MinimapButtonCollectorPerCharDB.excludedButtons or {}
+    MinimapButtonCollectorPerCharDB.excludedButtons[name] = nil
+    self:ScanButtons()
+end
+
+-- Single source of truth for panel ordering. Returns { name, data } entries
+-- in render order: first the names in perChar.buttonOrder (skipping any
+-- that aren't currently collected, but leaving them in the array so that
+-- re-including a previously-excluded button restores its prior slot), then
+-- any currently-collected names not yet in buttonOrder, alphabetically,
+-- auto-appended to buttonOrder for stable ordering next time.
+function ns:GetOrderedButtons()
+    local perChar = MinimapButtonCollectorPerCharDB
+    perChar.buttonOrder = perChar.buttonOrder or {}
+    local order = perChar.buttonOrder
+
+    local seen, result = {}, {}
+    for _, name in ipairs(order) do
+        seen[name] = true
+        if self.collectedButtons[name] then
+            result[#result + 1] = { name = name, data = self.collectedButtons[name] }
+        end
+    end
+
+    local fresh = {}
+    for name in pairs(self.collectedButtons) do
+        if not seen[name] then fresh[#fresh + 1] = name end
+    end
+    table.sort(fresh)
+    for _, name in ipairs(fresh) do
+        order[#order + 1] = name
+        result[#result + 1] = { name = name, data = self.collectedButtons[name] }
+    end
+
+    return result
+end
+
+-- Swap `name` with the nearest *currently-collected* neighbour above/below
+-- in buttonOrder. Non-collected names (ghosts from uninstalled addons, or
+-- currently-excluded entries holding a slot) are skipped so the user's
+-- click always produces a visible move in the panel.
+function ns:MoveButtonUp(name)
+    local order = MinimapButtonCollectorPerCharDB and MinimapButtonCollectorPerCharDB.buttonOrder
+    if not order then return false end
+    local myIdx
+    for i, n in ipairs(order) do if n == name then myIdx = i; break end end
+    if not myIdx then return false end
+    for i = myIdx - 1, 1, -1 do
+        if self.collectedButtons[order[i]] then
+            order[i], order[myIdx] = order[myIdx], order[i]
+            return true
+        end
+    end
+    return false
+end
+
+function ns:MoveButtonDown(name)
+    local order = MinimapButtonCollectorPerCharDB and MinimapButtonCollectorPerCharDB.buttonOrder
+    if not order then return false end
+    local myIdx
+    for i, n in ipairs(order) do if n == name then myIdx = i; break end end
+    if not myIdx then return false end
+    for i = myIdx + 1, #order do
+        if self.collectedButtons[order[i]] then
+            order[i], order[myIdx] = order[myIdx], order[i]
+            return true
+        end
+    end
+    return false
+end
+
 -- Live capture: when any addon registers a new LibDBIcon button after our
 -- post-login scan windows, adopt it immediately so /mbc rescan is usually
 -- unnecessary. hooksecurefunc runs our callback AFTER the original Register
@@ -189,8 +319,9 @@ end
 -- Schema v1 → v2 migration.
 -- v1 stored the trigger angle globally (MinimapButtonCollectorDB.minimap).
 -- v2 moves it to a per-character DB and introduces global.* for layout
--- preferences and perChar.hiddenButtons for the future hide feature. The
--- v1 table is preserved under _legacy_v1 as a safety net.
+-- preferences, perChar.excludedButtons for per-button "keep on minimap",
+-- and perChar.buttonOrder for per-character panel ordering. The v1 table
+-- is preserved under _legacy_v1 as a safety net.
 local function migrateSavedVariables()
     MinimapButtonCollectorDB        = MinimapButtonCollectorDB or {}
     MinimapButtonCollectorPerCharDB = MinimapButtonCollectorPerCharDB or {}
@@ -210,8 +341,14 @@ local function migrateSavedVariables()
         db.global.closeOnOutsideClick = true
     end
 
-    perChar.minimap       = perChar.minimap       or {}
-    perChar.hiddenButtons = perChar.hiddenButtons or {}
+    perChar.minimap         = perChar.minimap         or {}
+    perChar.excludedButtons = perChar.excludedButtons or {}
+    perChar.buttonOrder     = perChar.buttonOrder     or {}
+
+    -- v2.0.0 shipped with an always-empty `hiddenButtons` field intended for
+    -- a "hide from panel" feature; v2.1.0 pivoted to the "keep on minimap"
+    -- primitive (excludedButtons above), so drop the unused stub.
+    perChar.hiddenButtons = nil
 
     if hadV1Data and not perChar.minimap.minimapPos then
         perChar.minimap.minimapPos = db.minimap.minimapPos
@@ -287,6 +424,24 @@ SlashCmdList["MBC"] = function(msg)
         print(("|cff55ff55MBC:|r %d button(s) total."):format(total))
     elseif lower == "config" or lower == "settings" then
         if ns.OpenSettings then ns:OpenSettings() end
+    elseif lower == "exclude" or lower:match("^exclude%s") then
+        local target = raw:match("^%S+%s+(.+)$")
+        if not target or target == "" then
+            print("|cffffcc55MBC:|r usage: /mbc exclude <ButtonName> — case-sensitive, use /mbc list to see exact names.")
+            return
+        end
+        ns:ExcludeButton(target)
+        if ns.RefreshSettings then ns:RefreshSettings() end
+        print("|cff55ff55MBC:|r excluded " .. target .. " — it will stay on the minimap.")
+    elseif lower == "include" or lower:match("^include%s") then
+        local target = raw:match("^%S+%s+(.+)$")
+        if not target or target == "" then
+            print("|cffffcc55MBC:|r usage: /mbc include <ButtonName>.")
+            return
+        end
+        ns:IncludeButton(target)
+        if ns.RefreshSettings then ns:RefreshSettings() end
+        print("|cff55ff55MBC:|r re-including " .. target .. " in the panel.")
     elseif lower:match("^debug") then
         local target = raw:match("^%S+%s+(.+)$")
         if not target or target == "" then
@@ -322,6 +477,6 @@ SlashCmdList["MBC"] = function(msg)
     elseif lower == "" then
         if ns.ToggleOverlay then ns:ToggleOverlay() end
     else
-        print("|cff55ff55MBC:|r unknown command. Try /mbc, /mbc rescan, /mbc list, /mbc config, /mbc debug <ButtonName>.")
+        print("|cff55ff55MBC:|r unknown command. Try /mbc, /mbc rescan, /mbc list, /mbc config, /mbc exclude <name>, /mbc include <name>, /mbc debug <ButtonName>.")
     end
 end

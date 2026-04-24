@@ -210,12 +210,11 @@ function ns:OpenOverlay()
     local panel = buildSidePanel()
 
     local ordered = {}
-    for name, data in pairs(self.collectedButtons) do
-        if isUsable(data.button) then
-            ordered[#ordered + 1] = { name = name, data = data }
+    for _, entry in ipairs(ns:GetOrderedButtons()) do
+        if isUsable(entry.data.button) then
+            ordered[#ordered + 1] = entry
         end
     end
-    table.sort(ordered, function(a, b) return a.name < b.name end)
 
     if #ordered == 0 then
         print("|cffffcc55MBC:|r no minimap buttons collected yet. Try /mbc rescan.")

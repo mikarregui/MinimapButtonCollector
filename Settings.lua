@@ -16,9 +16,143 @@ local function labelForAnchor(value)
     return ANCHORS[1].label
 end
 
+local ROW_HEIGHT    = 24
+local SCROLL_WIDTH  = 380
+local SCROLL_HEIGHT = 180
+
 local panel
 local anchorDropdown
 local closeOutsideCheck
+local buttonsScrollContent
+local rebuildButtonList
+
+local rowPool, activeRows = {}, {}
+
+local function releaseRows()
+    for _, row in ipairs(activeRows) do
+        row:Hide()
+        rowPool[#rowPool + 1] = row
+    end
+    activeRows = {}
+end
+
+local function makeArrowButton(parent, direction)
+    local btn = CreateFrame("Button", nil, parent)
+    btn:SetSize(18, 18)
+    local up, down, disabled
+    if direction == "up" then
+        up       = "Interface\\Buttons\\UI-ScrollBar-ScrollUpButton-Up"
+        down     = "Interface\\Buttons\\UI-ScrollBar-ScrollUpButton-Down"
+        disabled = "Interface\\Buttons\\UI-ScrollBar-ScrollUpButton-Disabled"
+    else
+        up       = "Interface\\Buttons\\UI-ScrollBar-ScrollDownButton-Up"
+        down     = "Interface\\Buttons\\UI-ScrollBar-ScrollDownButton-Down"
+        disabled = "Interface\\Buttons\\UI-ScrollBar-ScrollDownButton-Disabled"
+    end
+    btn:SetNormalTexture(up)
+    btn:SetPushedTexture(down)
+    btn:SetDisabledTexture(disabled)
+    btn:SetHighlightTexture(up, "ADD")
+    return btn
+end
+
+local function acquireRow(parent)
+    local row = table.remove(rowPool)
+    if not row then
+        row = CreateFrame("Frame", nil, parent)
+        row:SetSize(SCROLL_WIDTH - 24, ROW_HEIGHT)
+
+        row.check = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
+        row.check:SetSize(22, 22)
+        row.check:SetPoint("LEFT", row, "LEFT", 0, 0)
+
+        row.upBtn   = makeArrowButton(row, "up")
+        row.upBtn:SetPoint("LEFT", row.check, "RIGHT", 4, 0)
+
+        row.downBtn = makeArrowButton(row, "down")
+        row.downBtn:SetPoint("LEFT", row.upBtn, "RIGHT", 2, 0)
+
+        row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        row.label:SetPoint("LEFT", row.downBtn, "RIGHT", 12, 0)
+        row.label:SetJustifyH("LEFT")
+    end
+    row:SetParent(parent)
+    row:Show()
+    activeRows[#activeRows + 1] = row
+    return row
+end
+
+rebuildButtonList = function()
+    if not buttonsScrollContent then return end
+    releaseRows()
+
+    local ordered     = ns.GetOrderedButtons and ns:GetOrderedButtons() or {}
+    local perChar     = MinimapButtonCollectorPerCharDB
+    local excludedMap = (perChar and perChar.excludedButtons) or {}
+    local order       = (perChar and perChar.buttonOrder)     or {}
+
+    local rows = {}
+    for _, entry in ipairs(ordered) do
+        rows[#rows + 1] = { name = entry.name, state = "collected" }
+    end
+
+    local excludedList = {}
+    for name in pairs(excludedMap) do excludedList[#excludedList + 1] = name end
+    table.sort(excludedList)
+    for _, name in ipairs(excludedList) do
+        rows[#rows + 1] = { name = name, state = "excluded" }
+    end
+
+    for i, info in ipairs(rows) do
+        local row = acquireRow(buttonsScrollContent)
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", 0, -(i - 1) * ROW_HEIGHT)
+
+        local name = info.name
+        local isCollected = info.state == "collected"
+
+        row.label:SetText(name)
+        row.check:SetChecked(isCollected)
+        row.check:SetScript("OnClick", function(self)
+            if self:GetChecked() then
+                if ns.IncludeButton then ns:IncludeButton(name) end
+            else
+                if ns.ExcludeButton then ns:ExcludeButton(name) end
+            end
+            rebuildButtonList()
+        end)
+
+        if isCollected then
+            row.upBtn:Show(); row.downBtn:Show()
+
+            local myIdx
+            for idx, n in ipairs(order) do if n == name then myIdx = idx; break end end
+
+            local canUp, canDown = false, false
+            if myIdx then
+                for idx = myIdx - 1, 1, -1 do
+                    if ns.collectedButtons[order[idx]] then canUp = true; break end
+                end
+                for idx = myIdx + 1, #order do
+                    if ns.collectedButtons[order[idx]] then canDown = true; break end
+                end
+            end
+            if canUp then row.upBtn:Enable() else row.upBtn:Disable() end
+            if canDown then row.downBtn:Enable() else row.downBtn:Disable() end
+
+            row.upBtn:SetScript("OnClick", function()
+                if ns.MoveButtonUp and ns:MoveButtonUp(name) then rebuildButtonList() end
+            end)
+            row.downBtn:SetScript("OnClick", function()
+                if ns.MoveButtonDown and ns:MoveButtonDown(name) then rebuildButtonList() end
+            end)
+        else
+            row.upBtn:Hide(); row.downBtn:Hide()
+        end
+    end
+
+    buttonsScrollContent:SetHeight(math.max(1, #rows * ROW_HEIGHT))
+end
 
 local function refresh()
     if not panel then return end
@@ -31,6 +165,7 @@ local function refresh()
     if closeOutsideCheck then
         closeOutsideCheck:SetChecked(db.global.closeOnOutsideClick == true)
     end
+    rebuildButtonList()
 end
 
 local function buildPanel()
@@ -42,7 +177,7 @@ local function buildPanel()
         UIParent,
         BackdropTemplateMixin and "BackdropTemplate" or nil
     )
-    panel:SetSize(440, 380)
+    panel:SetSize(440, 640)
     panel:SetPoint("CENTER")
     panel:SetFrameStrata("DIALOG")
     panel:SetMovable(true)
@@ -126,9 +261,31 @@ local function buildPanel()
         MinimapButtonCollectorDB.global.closeOnOutsideClick = self:GetChecked() and true or false
     end)
 
+    -- ========== Collected buttons section ==========
+    local buttonsHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalMed3")
+    buttonsHeader:SetPoint("TOPLEFT", closeOutsideCheck, "BOTTOMLEFT", 0, -22)
+    buttonsHeader:SetText("Collected buttons")
+
+    local buttonsHelp = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    buttonsHelp:SetPoint("TOPLEFT", buttonsHeader, "BOTTOMLEFT", 0, -4)
+    buttonsHelp:SetText("Uncheck to keep a button on the minimap. Arrows reorder inside the panel.")
+
+    local scroll = CreateFrame(
+        "ScrollFrame",
+        "MBCSettingsButtonsScroll",
+        panel,
+        "UIPanelScrollFrameTemplate"
+    )
+    scroll:SetSize(SCROLL_WIDTH, SCROLL_HEIGHT)
+    scroll:SetPoint("TOPLEFT", buttonsHelp, "BOTTOMLEFT", 0, -8)
+
+    buttonsScrollContent = CreateFrame("Frame", nil, scroll)
+    buttonsScrollContent:SetSize(SCROLL_WIDTH, ROW_HEIGHT)
+    scroll:SetScrollChild(buttonsScrollContent)
+
     -- ========== About section ==========
     local aboutHeader = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalMed3")
-    aboutHeader:SetPoint("TOPLEFT", closeOutsideCheck, "BOTTOMLEFT", 0, -22)
+    aboutHeader:SetPoint("TOPLEFT", scroll, "BOTTOMLEFT", 0, -16)
     aboutHeader:SetText("About")
 
     local version = GetAddOnMetadata and GetAddOnMetadata(addonName, "Version")
@@ -158,6 +315,13 @@ function ns:OpenSettingsPanel()
     refresh()
     panel:Show()
     panel:Raise()
+end
+
+-- Called from Core.lua when exclude/include/reorder happens outside the
+-- panel (e.g. slash commands while the panel is open) so the UI stays in
+-- sync without the user reopening it.
+function ns:RefreshSettings()
+    if panel and panel:IsShown() then refresh() end
 end
 
 -- Build the settings frame at load so /mbc config and right-click on the
