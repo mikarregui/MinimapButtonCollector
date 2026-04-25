@@ -16,7 +16,9 @@
 > Target client: **World of Warcraft — The Burning Crusade Classic Anniversary Edition** (2.5.5, Interface `20505`).
 > Available on **[GitHub Releases](https://github.com/mikarregui/MinimapButtonCollector/releases)**, **[CurseForge](https://www.curseforge.com/wow/addons/minimap-button-collector)**, and **[Wago](https://addons.wago.io/addons/minimapbuttoncollector)**.
 
-<!-- TODO: add demo GIF here after first release -->
+<p align="center">
+  <img src="https://raw.githubusercontent.com/mikarregui/MinimapButtonCollector/main/assets/mbc-comparison-readme.gif" alt="Side-by-side comparison: cluttered minimap with 8 addon buttons (Without MBC) versus a clean minimap with a single trigger and a panel on demand (With MBC)." />
+</p>
 
 ## Why
 
