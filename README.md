@@ -102,8 +102,8 @@ Push a tag `vX.Y.Z` to `main`. The [BigWigs Packager](https://github.com/BigWigs
 
 Planned:
 
-- **v2.2.0** — search / filter at the top of the panel
-- **v2.3.0** — [Masque](https://www.curseforge.com/wow/addons/masque) skin support
+- Search / filter at the top of the panel
+- [Masque](https://www.curseforge.com/wow/addons/masque) skin support
 
 Future ideas: drag & drop reorder inside the panel, additional layout options if users ask for them with data.
 
