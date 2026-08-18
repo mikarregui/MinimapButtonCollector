@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-08-18
+
 ### Fixed
 
 - **Buttons named after LibDBIcon but not registered with it are now collected.** Some addons hand-roll their minimap button and name it `LibDBIcon10_<Something>` on purpose, so that name-scanning collectors pick it up — Method Raid Tools is the one that surfaced this, but it is a general pattern. MBC fell between its own two passes: the button is absent from `LibDBIcon-1.0`'s registry, and the minimap frame walk skipped anything matching `^LibDBIcon10_`. The walk now asks the registry which frames it actually owns instead of trusting the name, so these buttons are collected as regular `minimap-child` entries (and released back to the minimap by point, which is the correct path for them).
@@ -115,7 +117,8 @@ Initial public release.
 - Slash commands: `/mbc` (toggle), `/mbc rescan` (re-detect), `/mbc list` (summary grouped by source, up to 10 names per source), `/mbc list full` (full dump).
 - Automated GitHub Releases via BigWigs Packager on tag push, resolving LibStub / CallbackHandler-1.0 / LibDataBroker-1.1 / LibDBIcon-1.0 externals from `.pkgmeta`.
 
-[Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/v2.1.1...HEAD
+[Unreleased]: https://github.com/mikarregui/MinimapButtonCollector/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/mikarregui/MinimapButtonCollector/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/mikarregui/MinimapButtonCollector/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/mikarregui/MinimapButtonCollector/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/mikarregui/MinimapButtonCollector/compare/v1.0.3...v2.0.0
