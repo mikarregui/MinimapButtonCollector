@@ -70,6 +70,7 @@ Available on [CurseForge](https://www.curseforge.com/wow/addons/minimap-button-c
 | `/mbc rescan` | Re-detect minimap buttons (rarely needed — new LibDBIcon buttons are captured live) |
 | `/mbc list` | Print a summary of collected buttons grouped by source |
 | `/mbc list full` | Print the full list of collected buttons (debug) |
+| `/mbc scan-debug` | List every minimap frame the scan examined and why each one was or was not collected (debug) |
 
 ## Compatibility
 
