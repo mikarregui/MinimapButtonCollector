@@ -14,6 +14,7 @@ ignore:
     - CHANGELOG.md
     - LICENSE
     - assets
+    - tests
 
 externals:
     Libs/LibStub:

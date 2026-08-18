@@ -6,6 +6,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- **Buttons named after LibDBIcon but not registered with it are now collected.** Some addons hand-roll their minimap button and name it `LibDBIcon10_<Something>` on purpose, so that name-scanning collectors pick it up — Method Raid Tools is the one that surfaced this, but it is a general pattern. MBC fell between its own two passes: the button is absent from `LibDBIcon-1.0`'s registry, and the minimap frame walk skipped anything matching `^LibDBIcon10_`. The walk now asks the registry which frames it actually owns instead of trusting the name, so these buttons are collected as regular `minimap-child` entries (and released back to the minimap by point, which is the correct path for them).
+- **Buttons parented to `MinimapBackdrop` are now found.** The frame walk only looked at direct children of `Minimap`.
+- **`Frame`-based buttons driven by `OnMouseUp` / `OnMouseDown` are now found.** The clickability test used `HasScript("OnClick")`, which answers whether a widget *type* supports the script rather than whether a handler is set — always false for a plain `Frame`, so hand-rolled buttons that are not real `Button` widgets were rejected regardless of what they had wired up.
+
+### Added
+
+- **`/mbc scan-debug`** — lists every minimap frame the scan examined, under which parent, and either that it was collected or the specific reason it was not (Blizzard frame, hidden by its own addon, wrong size, no texture, managed by MoveAny/SexyMap/Chinchilla, excluded by you…). Turns a "MBC does not detect X" report into a single paste.
+
+### Changed
+
+- Buttons that their own addon is currently hiding are no longer collected. Addons with a "hide my minimap icon" option hide the frame rather than destroying it; collecting one put back on screen exactly what the user had asked to remove, and because collection replaces the button's `Show`, the owning addon could not take it back.
+
 ## [2.1.1] - 2026-04-24
 
 ### Fixed

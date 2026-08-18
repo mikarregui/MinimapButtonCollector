@@ -29,6 +29,12 @@ local BLIZZARD_MINIMAP_BLACKLIST = {
 
 local CONFLICTING_PARENTS = { "MoveAny", "SexyMap", "Chinchilla" }
 
+-- Hand-rolled buttons hang off the backdrop as often as off Minimap itself,
+-- so both get walked (the same pair the established collectors scan).
+local SCAN_PARENTS = { "Minimap", "MinimapBackdrop" }
+
+local MOUSE_SCRIPTS = { "OnClick", "OnMouseUp", "OnMouseDown" }
+
 local MIN_BUTTON_SIZE = 18
 local MAX_BUTTON_SIZE = 48
 
@@ -45,28 +51,65 @@ local function isDynamicIndicatorName(name)
         or name:match("Marker%d+$") ~= nil
 end
 
-local function looksLikeAddonButton(frame)
-    if frame == UIParent or frame == Minimap or frame == MinimapBackdrop then
-        return false
+-- A LibDBIcon10_* name does NOT prove the button is registered with the lib.
+-- Addons that hand-roll a minimap button sometimes borrow the naming convention
+-- precisely so that name-scanning collectors pick them up: Method Raid Tools
+-- names its button LibDBIcon10_MethodRaidTools while its LibDBIcon registration
+-- sits commented out. Skipping on the name alone dropped those buttons between
+-- our two passes: absent from lib.objects, and excluded from the frame walk.
+-- The registry is the only authority, so compare frames, not names.
+local function isLibDBIconButton(frame)
+    local lib = LibStub and LibStub("LibDBIcon-1.0", true)
+    if not (lib and lib.objects) then return false end
+    for _, button in pairs(lib.objects) do
+        if button == frame then return true end
     end
+    return false
+end
+
+-- HasScript answers by widget type, GetScript by assigned handler, and we need
+-- both: HasScript("OnClick") is false for a plain Frame, so a Frame-based button
+-- driven by OnMouseUp was rejected no matter what it had wired up.
+local function hasMouseHandler(frame)
+    for _, script in ipairs(MOUSE_SCRIPTS) do
+        if frame:HasScript(script) and frame:GetScript(script) then return true end
+    end
+    return false
+end
+
+-- Single source of truth for "does the minimap pass want this frame?": nil when
+-- it qualifies, a short reason string when it does not. ScanButtons branches on
+-- it, /mbc scan-debug prints it, so the two can never drift apart.
+local function rejectReason(frame, name)
+    if frame == UIParent or frame == Minimap or frame == MinimapBackdrop then
+        return "the minimap itself"
+    end
+    if not name then return "no global name" end
+    if BLIZZARD_MINIMAP_BLACKLIST[name] then return "Blizzard frame" end
+    if isDynamicIndicatorName(name) then return "looks like a dynamic map indicator" end
+    if isLibDBIconButton(frame) then return "LibDBIcon button (taken by the registry pass)" end
 
     local objType = frame:GetObjectType()
-    local clickable = objType == "Button" or frame:HasScript("OnClick")
-    if not clickable then return false end
+    if objType ~= "Button" and not hasMouseHandler(frame) then
+        return "not clickable (" .. objType .. ", no mouse handler)"
+    end
 
-    local w = frame:GetWidth() or 0
-    local h = frame:GetHeight() or 0
+    -- Addons with a "hide my minimap icon" option hide the button rather than
+    -- destroying it. Collecting one would put back on screen exactly what the
+    -- user asked to remove, and since AdoptButton neuters Show(), the owning
+    -- addon could never take it back.
+    if not frame:IsShown() then return "hidden by its own addon" end
+
+    local w, h = frame:GetWidth() or 0, frame:GetHeight() or 0
     if w < MIN_BUTTON_SIZE or w > MAX_BUTTON_SIZE
        or h < MIN_BUTTON_SIZE or h > MAX_BUTTON_SIZE then
-        return false
+        return ("size %.0fx%.0f outside %d-%d"):format(w, h, MIN_BUTTON_SIZE, MAX_BUTTON_SIZE)
     end
 
     for _, region in ipairs({ frame:GetRegions() }) do
-        if region:GetObjectType() == "Texture" then
-            return true
-        end
+        if region:GetObjectType() == "Texture" then return nil end
     end
-    return false
+    return "no texture region"
 end
 
 local function conflictOwner(button)
@@ -88,19 +131,21 @@ function ns:CountButtons()
     return c
 end
 
+-- Returns true on success, or false plus a short reason. The reason feeds
+-- /mbc scan-debug, which is the only place these rejections are visible.
 function ns:AdoptButton(name, button, source)
-    if self.collectedButtons[name] then return false end
-    if not isUsable(button) then return false end
+    if self.collectedButtons[name] then return false, "already collected" end
+    if not isUsable(button) then return false, "forbidden frame" end
 
     local perChar = MinimapButtonCollectorPerCharDB
     if perChar and perChar.excludedButtons and perChar.excludedButtons[name] then
-        return false
+        return false, "excluded by you, /mbc include " .. name
     end
 
     local owner = conflictOwner(button)
     if owner then
         print("|cff5588ffMBC:|r skipping " .. name .. " (managed by " .. owner .. ")")
-        return false
+        return false, "managed by " .. owner
     end
 
     local data = {
@@ -144,7 +189,10 @@ function ns:AdoptButton(name, button, source)
     return true
 end
 
-function ns:ScanButtons()
+-- `onCandidate(parentName, frame, name, reason)`, when given, fires for every
+-- frame the minimap pass examines, adopted or not, so /mbc scan-debug reports
+-- on the real walk instead of a copy of it.
+function ns:ScanButtons(onCandidate)
     local added = 0
 
     local lib = LibStub and LibStub("LibDBIcon-1.0", true)
@@ -158,16 +206,26 @@ function ns:ScanButtons()
         end
     end
 
-    for _, child in ipairs({ Minimap:GetChildren() }) do
-        local name = child:GetName()
-        if name
-           and not BLIZZARD_MINIMAP_BLACKLIST[name]
-           and not name:find("^LibDBIcon10_")
-           and not isDynamicIndicatorName(name)
-           and not self.collectedButtons[name]
-           and looksLikeAddonButton(child) then
-            if self:AdoptButton(name, child, "minimap-child") then
-                added = added + 1
+    for _, parentName in ipairs(SCAN_PARENTS) do
+        local parent = _G[parentName]
+        if parent and parent.GetChildren then
+            for _, child in ipairs({ parent:GetChildren() }) do
+                local name = child:GetName()
+                local reason
+
+                -- Checked before rejectReason so an already-collected button
+                -- reports as such rather than as "hidden" (we hide what we adopt).
+                if name and self.collectedButtons[name] then
+                    reason = "already collected"
+                else
+                    reason = rejectReason(child, name)
+                    if not reason then
+                        local ok, why = self:AdoptButton(name, child, "minimap-child")
+                        if ok then added = added + 1 else reason = why end
+                    end
+                end
+
+                if onCandidate then onCandidate(parentName, child, name, reason) end
             end
         end
     end
@@ -429,6 +487,22 @@ SlashCmdList["MBC"] = function(msg)
             total = total + 1
         end
         print(("|cff55ff55MBC:|r %d button(s) total."):format(total))
+    elseif lower == "scan-debug" then
+        -- Runs a real scan and reports every frame it looked at, so a user
+        -- whose button is missing can paste the reason instead of us guessing.
+        print("|cff55ff55MBC scan-debug:|r walking " .. table.concat(SCAN_PARENTS, ", "))
+        local examined = 0
+        ns:ScanButtons(function(parentName, frame, name, reason)
+            examined = examined + 1
+            print(("  [%s] %s  %s  %.0fx%.0f  %s"):format(
+                parentName,
+                name or "<unnamed>",
+                frame:GetObjectType(),
+                frame:GetWidth() or 0, frame:GetHeight() or 0,
+                reason and ("|cffff5555" .. reason .. "|r") or "|cff55ff55collected|r"))
+        end)
+        print(("|cff55ff55MBC scan-debug:|r %d frame(s) examined, %d button(s) collected in total.")
+            :format(examined, ns:CountButtons()))
     elseif lower == "config" or lower == "settings" then
         if ns.OpenSettings then ns:OpenSettings() end
     elseif lower == "exclude" or lower:match("^exclude%s") then
@@ -484,6 +558,6 @@ SlashCmdList["MBC"] = function(msg)
     elseif lower == "" then
         if ns.ToggleOverlay then ns:ToggleOverlay() end
     else
-        print("|cff55ff55MBC:|r unknown command. Try /mbc, /mbc rescan, /mbc list, /mbc config, /mbc exclude <name>, /mbc include <name>, /mbc debug <ButtonName>.")
+        print("|cff55ff55MBC:|r unknown command. Try /mbc, /mbc rescan, /mbc list, /mbc config, /mbc exclude <name>, /mbc include <name>, /mbc scan-debug, /mbc debug <ButtonName>.")
     end
 end
